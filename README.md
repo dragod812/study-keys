@@ -9,7 +9,7 @@ After installation, open **Set up local folder** from the extension popup and fo
 1. Press **v**. Every visible word receives a short label.
 2. Type the label above the first word, then the label above the last word. The selection includes both complete words.
 3. In **Visual mode**, press **h** for Highlight mode, **y** to copy, or **n** to attach a note. In **Highlight mode**, press **1–6** to save a color. **Shift+V** starts directly in Highlight mode; direct color keys in Visual mode also remain available. Save notes with **Cmd/Ctrl-Enter** or the visible Save button.
-4. Press **Space h** to open Chrome’s native side panel. It shows the current page’s highlights and notes beside the article. Select a quotation to jump to it; edit a note directly in the panel.
+4. Press **Space h** to toggle Chrome’s native side panel open or closed. It shows the current page’s highlights and notes beside the article. Select a quotation to jump to it; edit a note directly in the panel. Closing with Chrome’s × button keeps the next toggle in sync. Save or discard an unfinished note before toggling closed. Older browser hosts without native panel-close events use the in-page notes drawer.
 
 The side panel follows the active tab. A draft stays attached to its original page while you edit. Finish or discard it before the panel follows another page. **All websites** opens a searchable library with color filters, reversible trash, JSON export and restore.
 
@@ -73,7 +73,7 @@ Marks preserve horizontal and vertical scroll, including independent reading pan
 | `Backspace` | Correct a partially typed label |
 | `Esc` | Cancel the nearest selection stage or dialog |
 | `↑` / `↓`, `Ctrl-d` / `Ctrl-u` while selecting | Scroll while retaining the selected start |
-| `Space h` | Open the page’s annotation side panel |
+| `Space h` | Toggle the page’s annotation side panel |
 | `[ h` / `] h` | Previous / next restored highlight |
 | `Space n` | Add a page note without a text selection |
 | `Space p f` | Search saved highlights and notes; filters `site:`, `color:`, `has:note`, `has:drawing` |

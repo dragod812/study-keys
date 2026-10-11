@@ -1,7 +1,22 @@
 import {COLORS,isLocalDocument} from './core.js';
 import {request} from './transport.js';
+import {sidebarShortcut} from './side-panel.js';
 const $=s=>document.querySelector(s);
 let context=null,page=null,lastSignature='',editing=false,filter='',polling=false;
+let panelPort=null,panelWindowId=null,reconnectTimer;
+const publishPanel=()=>{try{panelPort?.postMessage({visible:document.visibilityState==='visible',editing});}catch{}};
+async function connectPanel(){
+ try{
+  panelWindowId=(await chrome.windows.getCurrent()).id;
+  const port=chrome.runtime.connect({name:'study-keys-panel:'+panelWindowId});panelPort=port;publishPanel();
+  port.onDisconnect.addListener(()=>{if(panelPort!==port)return;panelPort=null;clearTimeout(reconnectTimer);reconnectTimer=setTimeout(connectPanel,500);});
+ }catch{}
+}
+document.addEventListener('visibilitychange',publishPanel);connectPanel();
+document.addEventListener('keydown',sidebarShortcut({
+ editable:e=>!!e.target.closest?.('input,textarea,select,button,a,[contenteditable]:not([contenteditable="false"]),[role="textbox"]'),
+ close:()=>request({type:'closePanel',windowId:panelWindowId}).catch(e=>status(e.message))
+}),true);
 function node(tag,text,cls){const n=document.createElement(tag);if(text!=null)n.textContent=text;if(cls)n.className=cls;return n;}
 function button(text,run,cls){const b=node('button',text,cls);b.type='button';b.onclick=run;return b;}
 function status(text){$('#status').textContent=text;}
@@ -24,13 +39,13 @@ function render(){
  }
 }
 function edit(item,card=null){
- if(editing)return;editing=true;const currentPage=page,original=item||{id:crypto.randomUUID(),note:'',color:'yellow',anchor:null,archived:false},box=node('section',null,'editor');
+ if(editing)return;editing=true;publishPanel();const currentPage=page,original=item||{id:crypto.randomUUID(),note:'',color:'yellow',anchor:null,archived:false},box=node('section',null,'editor');
  $('#add').disabled=true;$('#search').disabled=true;$('#enabled').disabled=true;
  box.append(node('h2',item?'Your annotation':'Page note'));if(original.anchor)box.append(node('blockquote',original.anchor.quote));
  const select=node('select');select.setAttribute('aria-label','Highlight color');for(const c of COLORS){const o=node('option',c.label);o.value=c.id;select.append(o);}select.value=original.color;
  const input=node('textarea');input.setAttribute('aria-label','Your note');input.placeholder='Leave a thought for your next visit.';input.value=original.note;input.maxLength=100000;
  const error=node('p',null,'error'),actions=node('div',null,'actions');let saving=false;
- const finish=async()=>{editing=false;$('#search').disabled=false;lastSignature='';await refresh();};
+ const finish=async()=>{editing=false;publishPanel();$('#search').disabled=false;lastSignature='';await refresh();};
  const save=button('Save · ⌘/Ctrl ↵',async()=>{if(saving)return;saving=true;save.disabled=true;try{await request({type:'save',url:currentPage.url,title:currentPage.title,item:{...original,note:input.value,color:select.value},base:item?.updatedAt??null});await finish();status('Note saved on this device.');}catch(e){error.textContent=e.message;}finally{saving=false;save.disabled=false;}},'primary');
  actions.append(save,button('Discard draft',()=>{if(!saving)finish();}));box.append(node('label','Highlight color'),select,node('label','Your note'),input,error,actions);
  if(card)card.replaceWith(box);else $('#annotations').prepend(box);

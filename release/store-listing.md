@@ -35,7 +35,7 @@ Space Enter searches open-tab titles, URLs and group names. Space p s finds pass
 KEEP A READING WORKSPACE
 The Space g menu finds, creates and focuses tab groups or moves Chrome-selected tabs between them. Save quick spots with Space e a, return with Space 1 through 9, and save or restore a workspace with Space w s / Space w o. Workspaces preserve tabs, groups and reading positions without closing other tabs. Pin search results and move through them with Space j / Space k. Space p q finds unresolved Question annotations; resolve them in the note editor.
 
-Space s toggles Chrome's native vertical tabs only with an optional macOS helper opt-in and Accessibility access. This fixed action is unavailable on Linux and in Codex's browser. Space h continues to open page notes. The default helper installation does not enable the native toggle.
+Space s toggles Chrome's native vertical tabs only with an optional macOS helper opt-in and Accessibility access. This fixed action is unavailable on Linux and in Codex's browser. Space h toggles page notes open and closed, including after the native close button is used. Save or discard an unfinished note before toggling closed. The default helper installation does not enable the native toggle.
 
 QUIETER CONTROLS
 The small mode pill, which-key menu and selection controls sit in the lower-right corner. Compact notifications leave more of the page visible. Quick spots share a 1–9 hint; ? keeps full shortcut descriptions searchable.
@@ -79,7 +79,7 @@ This beta requires macOS or Linux, Chrome 131+, Python 3.11+, and Git. No login 
 3. Run the exact python3 install.py --extension-id COMMAND_SHOWN_IN_SETUP command in the extracted directory. The setup page supplies the real ID. The installer creates ~/.study-keys and registers com.studykeys.local for that ID.
 4. Click Check connection; it should show Connected.
 5. Open https://dragod812.github.io/study-keys/demo.html. Press v, choose two word labels, press h, then 1. Reload; the highlight should return.
-6. Press v → Space → p, choose start/end paragraph labels, then n. Enter a note and save. Space h opens page notes.
+6. Press v → Space → p, choose start/end paragraph labels, then n. Enter a note and save. Press Space h twice to open and close page notes, then close with × and verify that Space h reopens them.
 7. Space d n opens the notebook. Draw a shape, close with Cmd/Ctrl+Enter, and reopen. Resize and dock from its window controls.
 8. Press i: normal website input, including Escape, is untouched. Ctrl+C returns to Normal.
 9. mA sets a global page mark; 'A from another tab returns to it. ma / 'a are local marks.
@@ -92,7 +92,7 @@ This beta requires macOS or Linux, Chrome 131+, Python 3.11+, and Git. No login 
 13. Open the demo and another ordinary web page. Space Enter searches tab titles; Space p s searches loaded passages. Space d s searches this page fuzzily; / uses literal search. Choose results and use Ctrl+O / Ctrl+I to traverse the reading jumps. ]] / [[ move between headings.
 14. Use Chrome's native tab multi-selection, then Space g n to create a named group or Space g m to move selected tabs. Space g f focuses/restores a group. Space w s saves the current window and Space w o restores it without closing other tabs. Space e a saves a quick spot; Space 1 returns to the first spot. These records save in ~/.study-keys/navigation/study.json.
 15. Save a red Question annotation and find it with Space p q. Mark it resolved in its editor; it should leave unresolved results and remain in the library. Search results can be pinned and revisited with Space j / Space k.
-16. Optional macOS-only vertical-tabs test: rerun the helper installer with --enable-vertical-tabs appended, grant Chrome Accessibility access, and enable vertical tabs in Chrome. With Chrome foreground, Space s toggles its native Expand Tabs / Collapse Tabs control. Linux and Codex do not support this optional action. Space h opens Study Keys notes regardless.
+16. Optional macOS-only vertical-tabs test: rerun the helper installer with --enable-vertical-tabs appended, grant Chrome Accessibility access, and enable vertical tabs in Chrome. With Chrome foreground, Space s toggles its native Expand Tabs / Collapse Tabs control. Linux and Codex do not support this optional action. Space h toggles Study Keys notes regardless.
 17. Reload the extension while a reading tab remains open. Its disconnected badge offers an explicit page reload. Reload when website edits are safe; the current navigation menu should work again. No automatic website reload occurs.
 
 18. Enable Allow access to file URLs for Study Keys. Open an HTML file or Markdown rendered by Markdown Viewer (also needs file access). Select, highlight, add a note and open the notebook. Reload to verify persistence; source file bytes remain unchanged.

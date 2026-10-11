@@ -425,8 +425,9 @@ function start() {
   }
   function closeDrawer(){drawer?.remove();drawer=null;}
   function pageSidebar(){
+    if(drawer){closeDrawer();return;}
     if(typeof STUDY_KEYS_PREVIEW!=='undefined'&&STUDY_KEYS_PREVIEW)return annotations();
-    request({type:'openPanel'}).catch(()=>annotations());
+    request({type:'togglePanel'}).then(result=>{if(result.fallback)annotations();}).catch(e=>say(e.message));
   }
   function annotations(){
     if(drawer){closeDrawer();return;}
@@ -510,7 +511,7 @@ function start() {
     {keys:['Space','d','n'],label:'Open this page’s floating drawing notebook',hint:'Drawing notebook',run:openNotebook},
     {keys:['Space','d','o'],label:'Page outline',run:outline},
     {keys:['Space','d','s'],label:'Fuzzy search passages in this document',hint:'Search document',run:navigation.documentSearch},
-    {keys:['Space','h'],label:'Open this page’s annotation sidebar',hint:'Highlights & notes',run:pageSidebar},
+    {keys:['Space','h'],label:'Toggle this page’s annotation sidebar',hint:'Toggle notes',run:pageSidebar},
     {keys:[']','h'],label:'Next highlight',run:()=>nextAnnotation(1)},
     {keys:['[','h'],label:'Previous highlight',run:()=>nextAnnotation(-1)},
     {keys:['Space','n'],label:'Add a page note',hint:'Page note',run:()=>edit()},
@@ -544,7 +545,8 @@ function start() {
     if(dialog){if(k==='Escape'){consume(e);navigation.clearFind();closeDialog();}return;}
     if(k==='Escape'&&drawer&&!mode&&!sequence.length){consume(e);closeDrawer();return;}
     if(!enabled)return;
-    if(e.composedPath().includes(host)||owned(e))return;
+    if(owned(e))return;
+    if(e.composedPath().includes(host)&&shadow.activeElement!==drawer)return;
     // Native/site dialogs own keys; they remain operable via ordinary Tab.
     if(pageDialog())return;
     if(selecting()&&k!=='Escape'&&!refreshSelection(true)){consume(e);return;}

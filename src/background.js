@@ -3,6 +3,8 @@ import {createDiskStorage,nativeClient} from './disk-storage.js';
 import {pageKey,supportedPage} from './core.js';
 import {createNavigationService} from './navigation-background.js';
 import {createAgentService} from './agent-background.js';
+import {createSidePanelController} from './side-panel.js';
+const sidePanel=createSidePanelController(chrome);
 let agentService,reconnectTimer,reconnectDelay=2000;
 const native=nativeClient(chrome.runtime,async command=>{if(!(await chrome.storage.local.get('agent-access'))['agent-access'])throw Error('AI access is off. Enable it in Study Keys setup.');return agentService(command);},()=>{clearTimeout(reconnectTimer);reconnectTimer=setTimeout(()=>startAgentBridge().catch(()=>{}),reconnectDelay);reconnectDelay=Math.min(reconnectDelay*2,60000);});
 const storage=createDiskStorage(chrome.storage.local,native);
@@ -29,8 +31,11 @@ chrome.storage.onChanged.addListener((changes,area)=>{
 chrome.runtime.onMessage.addListener((m,sender,respond)=>{
   if(sender.id!==chrome.runtime.id)return;
   // Call directly from the user gesture, before any asynchronous storage read.
-  if(m?.type==='openPanel'&&sender.tab&&sender.frameId===0){
-    chrome.sidePanel.open({windowId:sender.tab.windowId}).then(()=>respond({ok:true,value:{opened:true}}),e=>respond({ok:false,error:e.message}));return true;
+  if(['openPanel','togglePanel'].includes(m?.type)&&sender.tab&&sender.frameId===0){
+    sidePanel.toggle(sender.tab.windowId).then(value=>respond({ok:true,value}),e=>respond({ok:false,error:e.message}));return true;
+  }
+  if(m?.type==='closePanel'&&sender.url===chrome.runtime.getURL('panel.html')){
+    sidePanel.close(m.windowId).then(value=>respond({ok:true,value}),e=>respond({ok:false,error:e.message}));return true;
   }
   (async()=>{
     await ready;
