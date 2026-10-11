@@ -1,9 +1,9 @@
 # Study Keys release status
 
-- Version: 1.4.0
+- Version: 1.4.1
 - Publisher name: Sidharth Padhee (saved in Web Store publisher settings)
 - Public repository: https://github.com/dragod812/study-keys
-- Beta release: https://github.com/dragod812/study-keys/releases/tag/v1.4.0
+- Beta release: https://github.com/dragod812/study-keys/releases/tag/v1.4.1
 - Website: https://dragod812.github.io/study-keys/
 - Privacy: https://dragod812.github.io/study-keys/privacy.html
 - Chrome Web Store draft ID: jcjililghkknjbifgcnnkipiblmmmhid
@@ -12,6 +12,12 @@
 - Google confirmed submission: Pending Review. Publisher contact email verified. Automatic publication after approval is enabled.
 - Google flagged broad HTTP/HTTPS access for possible in-depth review. This access supports the advertised navigation and highlight restoration on visited web pages.
 - Submission date: 2026-10-11 UTC. The listing is not live on the Web Store until approved.
+
+## Version 1.4.1 verification
+
+36 JavaScript tests and 24 browser DOM checks passed. Codex in-app browser journeys verified command menus, paragraph labels, f hints, search/note typing and native website controls against competing player listeners and real local audio. See [verification and limitations](media-shortcuts-verification.md). Live YouTube was not tested with an installed extension in Codex. Chrome was used only to reload the installed unpacked build; its details showed 1.4.1 and Reloaded. Existing reading tabs must be reloaded for the new early keyboard handler.
+
+The Web Store package was verified as 1.4.1 and its description updated. The linked full reviewer instructions include the media-shortcut check. The earlier 1.4.0 review was canceled; Google confirmed Pending Review for the replacement with automatic publication after approval enabled. No permissions were added. GitHub release assets match the recorded SHA256 sums, and the website deployment succeeded.
 
 ## Version 1.4.0 verification
 
