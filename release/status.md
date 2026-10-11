@@ -1,9 +1,9 @@
 # Study Keys release status
 
-- Version: 1.4.1
+- Version: 1.4.2
 - Publisher name: Sidharth Padhee (saved in Web Store publisher settings)
 - Public repository: https://github.com/dragod812/study-keys
-- Beta release: https://github.com/dragod812/study-keys/releases/tag/v1.4.1
+- Beta release: https://github.com/dragod812/study-keys/releases/tag/v1.4.2
 - Website: https://dragod812.github.io/study-keys/
 - Privacy: https://dragod812.github.io/study-keys/privacy.html
 - Chrome Web Store draft ID: jcjililghkknjbifgcnnkipiblmmmhid
@@ -12,6 +12,12 @@
 - Google confirmed submission: Pending Review. Publisher contact email verified. Automatic publication after approval is enabled.
 - Google flagged broad HTTP/HTTPS access for possible in-depth review. This access supports the advertised navigation and highlight restoration on visited web pages.
 - Submission date: 2026-10-11 UTC. The listing is not live on the Web Store until approved.
+
+## Version 1.4.2 verification
+
+41 JavaScript tests passed. Codex in-app browser checks verified quiet navigation with an old refresh pending, immediate refresh after a route change, silent sender-context retry recovery, and navigation during selection. A simulated current-page library failure remained visible. Page ownership checks still reject cross-page writes. No permissions or dependencies changed.
+
+The Web Store package was verified as 1.4.2. The earlier 1.4.1 review was canceled and Google confirmed Pending Review for 1.4.2 with automatic publication after approval enabled. GitHub release asset hashes match the packaged files. The local unpacked build is rebuilt; Chrome reload was interrupted by active use and remains to be confirmed. Existing tabs must be reloaded after the extension update.
 
 ## Version 1.4.1 verification
 
