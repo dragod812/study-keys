@@ -1,0 +1,18 @@
+# Study Keys release status
+
+- Version: 1.3.2
+- Publisher name: Sidharth Padhee (saved in Web Store publisher settings)
+- Public repository: https://github.com/dragod812/study-keys
+- Beta release: https://github.com/dragod812/study-keys/releases/tag/v1.3.2
+- Website: https://dragod812.github.io/study-keys/
+- Privacy: https://dragod812.github.io/study-keys/privacy.html
+- Chrome Web Store draft ID: jcjililghkknjbifgcnnkipiblmmmhid
+- Draft: package, description, Education category, English (United States), icon, 3 screenshots, promo tile, homepage, support, privacy/permission explanations, local-data disclosures, reviewer instructions saved.
+- Distribution: Public, free of charge, all regions.
+- Not submitted: Google requires a public publisher contact email and verification. Awaiting the user's chosen email; do not publish an address inferred from account details.
+
+## Verification
+
+27 JavaScript tests passed. 12 native host/installer tests passed. Production npm audit: zero known vulnerabilities. The installed Chrome extension reports 1.3.2, its setup page reports Connected to the existing local library, and its helper download matches the packaged helper byte-for-byte. Public website and privacy page return HTTP 200; GitHub Pages build succeeded. Store ZIP contains only extension files and helper/attributions; the public repository was assembled from an explicit file list excluding personal notes and exported articles.
+
+The three store screenshots show original sample content and actual extension UI through the isolated browser harness. Prior installed-Chrome tests cover selection/copy, persistent highlights/notes, notebooks, insert mode, and local/global marks. No claim is made that every website or OS configuration works.

@@ -12,4 +12,4 @@ The installer creates `~/.study-keys` and registers the helper for your extensio
 
 [Setup and privacy](https://dragod812.github.io/study-keys/) · [Support](https://github.com/dragod812/study-keys/issues)
 
-Validation: 27 JavaScript tests, 9 native filesystem/recovery tests, installed Chrome setup/connection check, and screenshot/demo flows. Prior browser checks cover selection, local persistence, marks, and notebook docking. This beta is not a promise of compatibility with every website.
+Validation: 27 JavaScript tests, 12 native filesystem/recovery/installer tests, installed Chrome setup/connection check, and screenshot/demo flows. Prior browser checks cover selection, local persistence, marks, and notebook docking. This beta is not a promise of compatibility with every website.
