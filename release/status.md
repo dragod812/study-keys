@@ -1,9 +1,9 @@
 # Study Keys release status
 
-- Version: 1.4.2
+- Version: 1.5.0 (release prepared; store submission tracked below)
 - Publisher name: Sidharth Padhee (saved in Web Store publisher settings)
 - Public repository: https://github.com/dragod812/study-keys
-- Beta release: https://github.com/dragod812/study-keys/releases/tag/v1.4.2
+- Beta release: https://github.com/dragod812/study-keys/releases/tag/v1.5.0
 - Website: https://dragod812.github.io/study-keys/
 - Privacy: https://dragod812.github.io/study-keys/privacy.html
 - Chrome Web Store draft ID: jcjililghkknjbifgcnnkipiblmmmhid
@@ -12,6 +12,12 @@
 - Google confirmed submission: Pending Review. Publisher contact email verified. Automatic publication after approval is enabled.
 - Google flagged broad HTTP/HTTPS access for possible in-depth review. This access supports the advertised navigation and highlight restoration on visited web pages.
 - Submission date: 2026-10-11 UTC. The listing is not live on the Web Store until approved.
+
+## Version 1.5.0 release preparation
+
+65 JavaScript tests and 14 native helper tests passed. Production dependency audit reports zero known vulnerabilities. The package contains 469 files; its manifest and compiled scripts match the build, and fixtures, private evidence and personal library files are excluded. See [navigation verification](navigation-verification.md) for installed-Chrome, Hello Interview and Codex checks and their limits.
+
+The website and privacy policy now describe tab/passages search, the jumplist, groups, workspaces, quick spots, unresolved questions, and the optional macOS vertical-tabs helper. The 1.5.0 package adds `tabs` and `tabGroups` permissions. Publication steps are still in progress; the Pending Review statements above currently describe 1.4.2.
 
 ## Version 1.4.2 verification
 

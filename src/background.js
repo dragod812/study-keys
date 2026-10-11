@@ -1,8 +1,12 @@
 import {createRepository} from './repository.js';
-import {createDiskStorage} from './disk-storage.js';
+import {createDiskStorage,nativeClient} from './disk-storage.js';
 import {pageKey} from './core.js';
+import {createNavigationService} from './navigation-background.js';
 const storage=createDiskStorage(chrome.storage.local);
 const repository=createRepository(storage);
+let browserNative;
+const navigation=createNavigationService(chrome,storage,()=>{browserNative??=nativeClient();return browserNative('toggleVerticalTabs');});
+chrome.tabs.onActivated?.addListener(info=>navigation.activated(info).catch(()=>{}));
 const ready=Promise.all([chrome.storage.local.setAccessLevel({accessLevel:'TRUSTED_CONTEXTS'}),chrome.storage.session.setAccessLevel({accessLevel:'TRUSTED_CONTEXTS'})]);
 chrome.runtime.onInstalled?.addListener(({reason})=>{if(reason==='install')chrome.tabs.create({url:chrome.runtime.getURL('setup.html')});});
 chrome.tabs.onRemoved.addListener(async tabId=>{
@@ -12,7 +16,7 @@ chrome.tabs.onRemoved.addListener(async tabId=>{
 });
 chrome.storage.onChanged.addListener((changes,area)=>{
   if(area!=='local'||!Object.keys(changes).some(k=>k.startsWith('page:')||k==='settings'))return;
-  // No tab URLs or browsing history are requested. Each content script reloads
+  // Each content script reloads
   // only its own page's data; notes are never broadcast to other websites.
   chrome.tabs.query({}).then(tabs=>Promise.allSettled(tabs.map(t=>chrome.tabs.sendMessage(t.id,{type:'invalidate'})))).catch(()=>{});
 });
@@ -38,9 +42,11 @@ chrome.runtime.onMessage.addListener((m,sender,respond)=>{
     }
     const trusted=['library.html','panel.html','popup.html','setup.html'].some(p=>sender.url?.split(/[?#]/)[0]===chrome.runtime.getURL(p));
     if(!trusted) {
-      if(!sender.tab||sender.frameId!==0||!['page','save','enabled','openLibrary','navigate','openNotebook','marks','setMark','getMark','gotoMark'].includes(m?.type))throw Error('Request not available to page scripts.');
+      if(!sender.tab||sender.frameId!==0||!['page','save','enabled','openLibrary','navigate','openNotebook','marks','setMark','getMark','gotoMark','navigation','navigationLibrary'].includes(m?.type))throw Error('Request not available to page scripts.');
       if(!['openLibrary','navigate'].includes(m.type)&&pageKey(m.url)!==pageKey(sender.url))throw Object.assign(Error('The page changed. Please try again.'),{code:'PAGE_CHANGED'});
     }
+    if(m.type==='navigation')return navigation.request(m,sender);
+    if(m.type==='navigationLibrary')return repository({type:'library'});
     if(m.type==='gotoMark') {
       const mark=await repository({type:'getMark',url:m.url,name:m.name});
       if(/^[a-z]$/.test(m.name))return {mark};

@@ -13,7 +13,7 @@ export function nativeClient(runtime=chrome.runtime) {
 }
 export function createDiskStorage(cache,rpc=nativeClient()) {
  let boot=null,online=false,error='',readError='',folder='~/.study-keys';const versions=new Map();
- const supported=k=>/^(page:|drawing:|recovery:|marks:)/.test(k)||['settings','notebook-layout','global-marks'].includes(k);
+ const supported=k=>/^(page:|drawing:|recovery:|marks:)/.test(k)||['settings','notebook-layout','global-marks','navigation'].includes(k);
  async function initialize(){
   if(!boot)boot=(async()=>{
    const data=await cache.get(null),values=Object.fromEntries(Object.entries(data).filter(([k])=>supported(k)));

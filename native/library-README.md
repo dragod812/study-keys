@@ -14,6 +14,7 @@ pages/<website>/<page-path>--<URL-hash>/
 settings.json               Per-website keyboard settings
 window.json                 Last notebook position, size and docking placement
 global-marks.json            Uppercase Vim marks that work across tabs
+navigation/study.json        Quick spots and saved workspaces with tab groups and reading positions
 ```
 
 Files appear when that type of content is first saved. Meaningful URL queries and application hash routes get separate page folders. Tracking parameters and ordinary heading fragments do not. Folder names use the URL path plus a stable hash; changing a page title does not move your notes.
@@ -22,7 +23,7 @@ Edit notes in Study Keys. `notes.md` is generated and may be regenerated on the 
 
 The extension writes this folder first and keeps a browser cache for reading if the helper is unavailable. A failed disk write is reported; the editor retains the unsaved draft. Save-and-close waits for the disk write. Existing browser annotations are migrated without replacing files already in this library.
 
-`.integration/` contains the machine-specific native messaging helper. `.pending/` contains temporary writes and an interruption-recovery journal. Both are ignored by Git. The helper only reads/writes this library and exposes no network or command-execution API. Restart/reopen the extension after reinstalling the helper.
+`.integration/` contains the machine-specific native messaging helper. `.pending/` contains temporary writes and an interruption-recovery journal. Both are ignored by Git. By default the helper only reads/writes this library. An explicitly enabled macOS integration can also click Chrome’s native vertical-tabs toggle. It exposes no network or arbitrary command-execution API. Restart/reopen the extension after reinstalling the helper.
 
 Use `git status`, `git add .` and `git commit` to keep versions. Connect a **private** GitHub repository if you want a remote backup. This folder can contain private notes, copied passages, page URLs and drawings; Git pushes remain your choice. No remote is configured by the installer, and commits/pushes are never automatic.
 

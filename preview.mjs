@@ -22,6 +22,8 @@ for(const port of [8788,8789,8790]){
    let result;try{
     let m=JSON.parse(body),value;
     if(m.type==='openNotebook'){const session=crypto.randomUUID();sessions.set(session,{url:m.url,title:m.title});value={session,layout:data['notebook-layout'],src:`http://127.0.0.1:${port}/notebook.html?session=${session}`};}
+    else if(m.type==='previewNavigationGet')value={[m.key]:data[m.key]};
+    else if(m.type==='previewNavigationSet'){data={...data,...m.values};await writeFile(db,JSON.stringify(data,null,2));value={};}
     else{if(m.type==='notebookRequest'){const scope=sessions.get(m.session);if(!scope)throw Error('Reopen the preview notebook');m={...m,type:m.action,...scope};}value=await repository(m);}
     result={ok:true,value};}catch(e){result={ok:false,error:e.message};}
    res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify(result));return;
@@ -33,6 +35,7 @@ for(const port of [8788,8789,8790]){
   if(!file.startsWith(root+path.sep))throw Error('Invalid path');
   let body=await readFile(file);
   if(path.extname(file)==='.html'&&new URL(req.url,`http://127.0.0.1:${port}`).searchParams.has('installed'))body=Buffer.from(body.toString().replace('<script src="/content.js"></script>','').replace('not the installed extension','installed extension test (no preview script)'));
+  if(path.extname(file)==='.html'&&new URL(req.url,`http://127.0.0.1:${port}`).searchParams.has('isolated'))body=Buffer.from(body.toString().replace('<script src="/content.js"></script>',`<button id="start-preview" onclick="const s=document.createElement('script');s.src='/content.js';document.body.append(s);this.remove()">Start isolated preview (put installed extension in Insert mode first)</button>`));
   res.writeHead(200,{'Content-Type':types[path.extname(file)]||'application/octet-stream','Cache-Control':'no-store'});res.end(body);
  }catch(e){res.writeHead(404);res.end(e.message);}}).listen(port,'127.0.0.1');
 }

@@ -80,7 +80,7 @@ export function cleanItem(raw) {
     anchor={quote:a.quote,prefix:a.prefix,suffix:a.suffix,start:a.start,end:a.end};
   }
   if(!anchor&&!raw.note.trim())throw Error('A page note cannot be empty.');
-  return {id:raw.id,color,note:raw.note,anchor,archived:!!raw.archived,updatedAt:Number.isSafeInteger(raw.updatedAt)&&raw.updatedAt>=0?raw.updatedAt:0};
+  return {id:raw.id,color,note:raw.note,anchor,archived:!!raw.archived,...(raw.resolved?{resolved:true}:{}),updatedAt:Number.isSafeInteger(raw.updatedAt)&&raw.updatedAt>=0?raw.updatedAt:0};
 }
 export function validateBackup(raw) {
   if(raw?.format!=='study-keys'||![1,2,3].includes(raw.version)||!Array.isArray(raw.pages)||raw.pages.length>10000)throw Error('Not a supported Study Keys backup.');

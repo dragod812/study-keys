@@ -1,1 +1,196 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Study Keys — Read, highlight, remember</title><meta name="description" content="Vim-style reading, local highlights, notes and Excalidraw notebooks. macOS/Linux beta with a required local helper."><link rel="stylesheet" href="style.css"></head><body><header><a class="brand" href="./"><span class="mark">sk</span>Study Keys</a><span class="meta">By Sidharth Padhee · macOS / Linux beta</span></header><main><section class="hero"><div class="eyebrow">Stay with the idea. Keep your hands on the keys.</div><h1>Read deeply.<br>Make it yours.</h1><p class="lede">Navigate with Vim-style keys. Pick passages by their labels. Keep highlights, notes, and drawings beside the ideas that inspired them.</p><a class="cta" href="#setup">Get started</a><a class="cta secondary" href="https://github.com/dragod812/study-keys">View the repository</a><p class="notice"><strong>macOS / Linux beta.</strong> Requires Chrome 131+, Python 3.11+, Git, and a separate local helper. Chrome Web Store review is pending. The helper is required for saving.</p></section><div class="palette"><span style="background:#ffe9a1">1 · Key idea</span><span style="background:#cce7ff">2 · Key word</span><span style="background:#d9efb6">3 · Positives</span><span style="background:#ffd8ac">4 · Negatives</span><span style="background:#e7d4ff">5 · Game changer</span><span style="background:#ffb3b3">6 · Question</span></div><div class="grid"><section class="card"><h2>Choose it.<br>Keep it.</h2><p>Press <kbd>v</kbd>, type the start and end labels, then copy, highlight, or add a note. Select words, paragraphs, sections, or readable page text.</p></section><section class="card"><h2>A notebook<br>for every page.</h2><p>Open your page notes alongside the text. Sketch in a floating Excalidraw notebook; resize, dock, or maximize it as you think.</p></section><section class="card"><h2>Your files.<br>Your library.</h2><p>Annotations and drawings live in <code>~/.study-keys</code>, organized by page. Export backups or use your own Git workflow. No account or sync service.</p></section></div><section><h2>A small set of keys. A calmer reading flow.</h2><div class="keys"><kbd>j / k</kbd><span>Scroll</span><kbd>f</kbd><span>Link hints</span><kbd>d / D</kbd><span>Copy one / multiple links by label</span><kbd>v</kbd><span>Select</span><kbd>h</kbd><span>Highlight selection</span><kbd>y</kbd><span>Copy</span><kbd>?</kbd><span>Guide</span></div><p>Page marks use <kbd>ma</kbd> and <kbd>'a</kbd>. Capital-letter marks travel across tabs. Press <kbd>i</kbd> to pass keys through to the website; <kbd>Ctrl+C</kbd> returns to Normal mode.</p><p>Normal-mode commands keep the whole key press with Study Keys, so selecting passages does not also activate a media page’s playback shortcuts. Reload open tabs after updating.</p><p><a href="demo.html">Try the reading demo after installing</a></p><img class="screenshot" src="assets/reading.png" alt="Study Keys paragraph labels on the focused reading demo"></section><section id="setup"><h2>Set up once. Keep learning.</h2><ol><li>Download the <a href="https://github.com/dragod812/study-keys/releases/latest">latest beta release</a>. Until the store listing is available, extract the extension ZIP and load its folder using <strong>chrome://extensions → Developer mode → Load unpacked</strong>.</li><li>Open <strong>Study Keys → Set up local folder</strong> from the toolbar. Download the local helper ZIP and extract it.</li><li>In a terminal in that folder, run the exact command shown on the setup page. It includes your extension’s ID.</li><li>Click <strong>Check connection</strong>, then reload your reading tabs. Disable other Vim keyboard extensions to avoid conflicts.</li></ol><p>The helper creates <code>~/.study-keys</code>, initializes a local Git repository, and registers access for this extension. It does not add a remote, commit, or upload your library.</p><p>Switching from an unpacked copy to the store version will require running the setup command again for the new extension ID. Your existing library stays in place.</p></section><section><h2>Built for ordinary web pages.</h2><p>Browser-internal pages, Chrome’s PDF viewer, embedded frames, closed shadow roots and canvas-rendered text are outside this beta’s scope. Saved highlights need matching text to reappear after a page changes. Very large pages and annotations have size limits.</p><p>If the helper is disconnected, cached notes remain readable, and saves report an error. Make regular backups of your local folder.</p></section></main><footer>© 2026 Sidharth Padhee · <a href="privacy.html">Privacy & data use</a> · <a href="https://github.com/dragod812/study-keys/issues">Support</a> · Includes Excalidraw and other <a href="https://github.com/dragod812/study-keys/tree/main/third-party">third-party components</a>.</footer></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Study Keys — Read, highlight, remember</title>
+<meta name="description" content="Vim-style tab and passage search, local highlights, notes and Excalidraw notebooks. macOS/Linux beta with a required local helper.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+<a class="brand" href="./">
+<span class="mark">sk</span>Study Keys</a>
+<span class="meta">By Sidharth Padhee · macOS / Linux beta</span>
+</header>
+<main>
+<section class="hero">
+<div class="eyebrow">Stay with the idea. Keep your hands on the keys.</div>
+<h1>Read deeply.<br>Make it yours.</h1>
+<p class="lede">Navigate with Vim-style keys. Pick passages by their labels. Keep highlights, notes, and drawings beside the ideas that inspired them.</p>
+<a class="cta" href="#setup">Get started</a>
+<a class="cta secondary" href="https://github.com/dragod812/study-keys">View the repository</a>
+<p class="notice">
+<strong>macOS / Linux beta.</strong> Requires Chrome 131+, Python 3.11+, Git, and a separate local helper. Chrome Web Store review is pending. The helper is required for saving.</p>
+</section>
+<section class="release-note">
+<div class="eyebrow">New in 1.5.0</div>
+<h2>Find your place. Follow your ideas.</h2>
+<p>Search across open tabs, jump back through your reading trail, and return to saved workspaces. Your highlights, notes, and drawings stay beside the page.</p>
+<a href="https://github.com/dragod812/study-keys/releases/tag/v1.5.0">See the release and downloads →</a>
+</section>
+<div class="palette">
+<span style="background:#ffe9a1">1 · Key idea</span>
+<span style="background:#cce7ff">2 · Key word</span>
+<span style="background:#d9efb6">3 · Positives</span>
+<span style="background:#ffd8ac">4 · Negatives</span>
+<span style="background:#e7d4ff">5 · Game changer</span>
+<span style="background:#ffb3b3">6 · Question</span>
+</div>
+<div class="grid">
+<section class="card">
+<h2>Choose it.<br>Keep it.</h2>
+<p>Press <kbd>v</kbd>, type the start and end labels, then copy, highlight, or add a note. Select words, paragraphs, sections, or readable page text.</p>
+</section>
+<section class="card">
+<h2>A notebook<br>for every page.</h2>
+<p>Open your page notes alongside the text. Sketch in a floating Excalidraw notebook; resize, dock, or maximize it as you think.</p>
+</section>
+<section class="card">
+<h2>Your files.<br>Your library.</h2>
+<p>Annotations and drawings live in <code>~/.study-keys</code>, organized by page. Export backups or use your own Git workflow. No account or sync service.</p>
+</section>
+</div>
+<section>
+<h2>A small set of keys. A calmer reading flow.</h2>
+<div class="keys">
+<kbd>j / k</kbd>
+<span>Scroll</span>
+<kbd>f</kbd>
+<span>Link hints</span>
+<kbd>d / D</kbd>
+<span>Copy one / multiple links by label</span>
+<kbd>v</kbd>
+<span>Select</span>
+<kbd>h</kbd>
+<span>Highlight selection</span>
+<kbd>y</kbd>
+<span>Copy</span>
+<kbd>?</kbd>
+<span>Guide</span>
+</div>
+<p>Page marks use <kbd>ma</kbd> and <kbd>'a</kbd>. Capital-letter marks travel across tabs. Press <kbd>i</kbd> to pass keys through to the website; <kbd>Ctrl+C</kbd> returns to Normal mode.</p>
+<p>Normal-mode commands keep the whole key press with Study Keys, so selecting passages does not also activate a media page’s playback shortcuts. Reload open tabs after updating. An older connected tab shows a reload-to-reconnect prompt so you can finish website edits first.</p>
+<p>
+<a href="demo.html">Try the reading demo after installing</a>
+</p>
+<img class="screenshot" src="assets/reading.png" alt="Study Keys paragraph labels on the focused reading demo">
+</section>
+<section id="navigation">
+<h2>Your reading desk, a few keys away.</h2>
+<p>Press <kbd>Space</kbd> to discover the commands. Type each key in sequence; use <kbd>Esc</kbd> to close a picker.</p>
+<div class="shortcut-table">
+<table>
+<caption>Navigation shortcuts in version 1.5.0</caption>
+<thead>
+<tr>
+<th scope="col">Keys</th>
+<th scope="col">What they do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<kbd>Space Enter</kbd>
+</td>
+<td>Fuzzy search open-tab titles, URLs, and group names.</td>
+</tr>
+<tr>
+<td>
+<kbd>Space p s</kbd>
+</td>
+<td>Find passages across loaded tabs. Narrow with <code>site:</code> or <code>group:</code>.</td>
+</tr>
+<tr>
+<td>
+<kbd>Space d s</kbd> / <kbd>/</kbd>
+</td>
+<td>Fuzzy passage search / literal search in this document. Use <kbd>n</kbd> and <kbd>N</kbd> for literal matches.</td>
+</tr>
+<tr>
+<td>
+<kbd>Ctrl+O</kbd> / <kbd>Ctrl+I</kbd>
+</td>
+<td>Go back / forward through your session’s reading jumps. Browse the list with <kbd>Space p j</kbd>.</td>
+</tr>
+<tr>
+<td>
+<kbd>]]</kbd> / <kbd>[[</kbd>
+</td>
+<td>Next / previous section. Add a count, such as <kbd>3]]</kbd>. Center the passage with <kbd>zz</kbd>.</td>
+</tr>
+<tr>
+<td>
+<kbd>Space Space</kbd>
+</td>
+<td>Switch to the previous tab in this window.</td>
+</tr>
+<tr>
+<td>
+<kbd>Space g</kbd>
+</td>
+<td>Then <kbd>g</kbd> find groups, <kbd>n</kbd> create, <kbd>m</kbd> move selected tabs, <kbd>u</kbd> ungroup, or <kbd>f</kbd> focus / restore.</td>
+</tr>
+<tr>
+<td>
+<kbd>Space e a</kbd> / <kbd>Space e e</kbd>
+</td>
+<td>Save / manage quick spots. Return with <kbd>Space 1</kbd> through <kbd>Space 9</kbd>.</td>
+</tr>
+<tr>
+<td>
+<kbd>Space w s</kbd> / <kbd>Space w o</kbd>
+</td>
+<td>Save / restore a workspace with tabs, groups, and reading positions.</td>
+</tr>
+<tr>
+<td>
+<kbd>Space j</kbd> / <kbd>Space k</kbd>
+</td>
+<td>Move through pinned search results without searching again.</td>
+</tr>
+<tr>
+<td>
+<kbd>Space p f</kbd> / <kbd>Space p q</kbd>
+</td>
+<td>Search your saved library / unresolved red Question annotations.</td>
+</tr>
+<tr>
+<td>
+<kbd>Space s</kbd>
+</td>
+<td>Toggle Chrome’s native vertical tabs with the optional macOS integration below.</td>
+</tr>
+<tr>
+<td>
+<kbd>Space h</kbd> / <kbd>Space d n</kbd>
+</td>
+<td>Open page notes / the floating Excalidraw notebook.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p class="small">Passage search covers accessible, loaded pages and excludes editors. Sleeping tabs are left asleep. Workspaces reuse matching tabs and leave other tabs open. Browser shortcuts and supported features can vary outside Chrome.</p>
+</section>
+<section id="setup">
+<h2>Set up once. Keep learning.</h2>
+<ol>
+<li>Download the <a href="https://github.com/dragod812/study-keys/releases/latest">latest beta release</a>. Until the store listing is available, extract the extension ZIP and load its folder using <strong>chrome://extensions → Developer mode → Load unpacked</strong>.</li>
+<li>Open <strong>Study Keys → Set up local folder</strong> from the toolbar. Download the local helper ZIP and extract it.</li>
+<li>In a terminal in that folder, run the exact command shown on the setup page. It includes your extension’s ID.</li>
+<li>Click <strong>Check connection</strong>, then reload your reading tabs. Disable other Vim keyboard extensions to avoid conflicts.</li>
+</ol>
+<p>The helper creates <code>~/.study-keys</code>, initializes a local Git repository, and registers access for this extension. It does not add a remote, commit, or upload your library.</p>
+<p>
+<strong>Optional vertical-tabs control on macOS:</strong> update the helper, then append <code>--enable-vertical-tabs</code> to its install command. Enable vertical tabs in Chrome and grant Chrome Accessibility access when macOS requests it. The helper only clicks Chrome’s native Expand Tabs / Collapse Tabs button while Chrome is foreground. This optional action is unavailable on Linux and in Codex’s browser; normal navigation, notes, and drawing features do not need it.</p>
+<p>Switching from an unpacked copy to the store version will require running the setup command again for the new extension ID. Your existing library stays in place.</p>
+</section>
+<section>
+<h2>Built for ordinary web pages.</h2>
+<p>Browser-internal pages, Chrome’s PDF viewer, embedded frames, closed shadow roots and canvas-rendered text are outside this beta’s scope. Saved highlights need matching text to reappear after a page changes. Very large pages and annotations have size limits.</p>
+<p>If the helper is disconnected, cached notes remain readable, and saves report an error. Make regular backups of your local folder.</p>
+</section>
+</main>
+<footer>© 2026 Sidharth Padhee · <a href="privacy.html">Privacy & data use</a> · <a href="https://github.com/dragod812/study-keys/issues">Support</a> · Includes Excalidraw and other <a href="https://github.com/dragod812/study-keys/tree/main/third-party">third-party components</a>.</footer>
+</body>
+</html>

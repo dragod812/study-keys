@@ -1,4 +1,5 @@
 import {pageKey,cleanItem,validateBackup,normalizePageColors} from './core.js';
+import {cleanStudyState} from './navigation-core.js';
 import {cleanMark,cleanPosition} from './marks.js';
 import {cleanScene,cleanDrawing,cleanLayout} from './notebook-core.js';
 
@@ -54,9 +55,10 @@ export function createRepository(storage,now=()=>Date.now()) {
       const data=await storage.get(null),pages=Object.entries(data).filter(([k])=>k.startsWith('page:')).map(([,v])=>normalizePageColors(v));
       const drawings=Object.entries(data).filter(([k])=>k.startsWith('drawing:')).map(([,v])=>v),recoveries=Object.entries(data).filter(([k])=>k.startsWith('recovery:')).map(([,v])=>v);
       const marks=Object.entries(data).filter(([k])=>k.startsWith('marks:')).map(([,v])=>v),globalMarks=data['global-marks']||{};
-      return {format:'study-keys',version:3,marks,globalMarks,exportedAt:new Date(now()).toISOString(),pages,drawings:m.type==='library'?drawings.map(({scene,...rest})=>rest):drawings,recoveries:m.type==='library'?[]:recoveries};
+      return {format:'study-keys',version:3,navigation:cleanStudyState(data.navigation||{}),marks,globalMarks,exportedAt:new Date(now()).toISOString(),pages,drawings:m.type==='library'?drawings.map(({scene,...rest})=>rest):drawings,recoveries:m.type==='library'?[]:recoveries};
     }
     if(m.type==='import') {
+      const navigation=m.backup.navigation?cleanStudyState(m.backup.navigation):null;
       const pages=validateBackup(m.backup);let imported=0,importedDrawings=0;const updates={};
       const drawingList=m.backup.version>=2?m.backup.drawings:[],recoveryList=m.backup.version>=2?m.backup.recoveries:[];
       if(!Array.isArray(drawingList)||!Array.isArray(recoveryList)||drawingList.length+recoveryList.length>10000)throw Error('Invalid notebook backup.');
@@ -80,6 +82,7 @@ export function createRepository(storage,now=()=>Date.now()) {
       for(const record of cleanedMarks){const key='marks:'+record.url,old=(await get(key))||{...record,marks:{}};for(const [name,mark]of Object.entries(record.marks))if(!old.marks[name]||mark.updatedAt>old.marks[name].updatedAt)old.marks[name]=mark;updates[key]=old;}
       if(Object.keys(cleanedGlobal).length){const old=(await get('global-marks'))||{};for(const [name,mark]of Object.entries(cleanedGlobal))if(!old[name]||mark.updatedAt>old[name].updatedAt)old[name]=mark;updates['global-marks']=old;}
       // Validate the entire file before this one atomic storage write.
+      if(navigation){const old=cleanStudyState((await get('navigation'))||{});old.spots=[...old.spots,...navigation.spots.filter(p=>!old.spots.some(o=>o.url===p.url&&o.position.pane===p.position.pane&&o.position.y===p.position.y))].slice(0,9);old.workspaces=[...old.workspaces,...navigation.workspaces.filter(w=>!old.workspaces.some(o=>o.id===w.id))].slice(0,50);updates.navigation=old;}
       await storage.set(updates);return {imported,importedDrawings};
     }
     throw Error('Unknown request.');

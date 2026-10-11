@@ -1,9 +1,6 @@
-export async function request(message) {
-  let result;
-  try{result=await chrome.runtime.sendMessage(message);}catch {throw Error('Study Keys was updated or disconnected. Reload this page to reconnect.');}
-  if(!result?.ok)throw Object.assign(Error(result?.error||'Could not save. Your draft is still here.'),{code:result?.code});
-  return result.value;
-}
+import {createRuntimeConnection} from './runtime-connection.js';
+const connection=createRuntimeConnection(()=>chrome.runtime);
+export const request=connection.request,connected=connection.connected,onDisconnect=connection.subscribe;
 export function watch(callback) {
   chrome.runtime.onMessage.addListener(m=>{if(m?.type==='invalidate')callback();});
   window.addEventListener('focus',callback);

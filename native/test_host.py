@@ -61,4 +61,17 @@ class FileStoreTests(unittest.TestCase):
         items=[{**PAGE['items'][0],'id':'color-'+color,'color':color} for color in ['yellow','blue','green','orange','purple','red','pink']]
         value={**PAGE,'items':items};self.db.request({'op':'set','values':{'page:'+URL:value}})
         self.assertEqual(Library(self.root).get()['page:'+URL]['items'],items)
+
+class NavigationTests(unittest.TestCase):
+    def test_navigation_roundtrip_and_opt_in(self):
+        with tempfile.TemporaryDirectory() as temp:
+            library = Library(Path(temp))
+            value = {'spots': [], 'workspaces': []}
+            library.request({'op': 'set', 'values': {'navigation': value}})
+            self.assertEqual(library.get('navigation')['navigation'], value)
+            self.assertTrue((Path(temp) / 'navigation' / 'study.json').is_file())
+            self.assertEqual(library.get()['navigation'], value)
+            with self.assertRaises(ValueError):
+                library.request({'op': 'toggleVerticalTabs'})
+
 if __name__=='__main__':unittest.main()

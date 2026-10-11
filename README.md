@@ -76,7 +76,7 @@ Marks preserve horizontal and vertical scroll, including independent reading pan
 | `Space h` | Open the page’s annotation side panel |
 | `[ h` / `] h` | Previous / next restored highlight |
 | `Space n` | Add a page note without a text selection |
-| `Space p f` | Open the library across all websites |
+| `Space p f` | Search saved highlights and notes; filters `site:`, `color:`, `has:note`, `has:drawing` |
 | `s` | Search links and controls; Ctrl-j/k or arrows, then Enter |
 | `d` | Label visible links; type a label to copy its URL |
 | `Shift+D` / `D` | Keep typing link labels to add unique URLs to one clipboard list, one per line; Escape finishes |
@@ -85,10 +85,10 @@ Marks preserve horizontal and vertical scroll, including independent reading pan
 | `h j k l` | Scroll the active page or pane |
 | `gg` / `G` | Top / bottom of the active page or pane |
 | `Ctrl-d` / `Ctrl-u` | Half a page down / up |
-| `/`, `n`, `N` | Find text, next match, previous match |
+| `/`, `n`, `N` | Literal text search, next occurrence, previous occurrence |
 | `Space d n` | Open the floating Excalidraw notebook for this page |
 | `Space d o` | Page heading outline |
-| `Space d s` | Find text on the page |
+| `Space d s` | Fuzzy passage search in the current document |
 | `Space p l` | Resume the last search |
 | `H` / `L` | Back / forward in tab history |
 | `J` / `K` | Next / previous browser tab |
@@ -98,6 +98,32 @@ Marks preserve horizontal and vertical scroll, including independent reading pan
 | `i` | Insert mode: pass keys through, including Escape |
 | `Ctrl+C` in Insert mode | Return to Normal; leave the focused website field without changing its text |
 | `?` | Searchable guide and persistent per-site enable setting |
+
+New in the 1.5 navigation build:
+
+| Keys | Action |
+| --- | --- |
+| `Space s` | Toggle **Chrome’s native vertical tabs**, using the optional macOS helper described below |
+| `Space Enter` | Fuzzy search open-tab titles, URLs and group names |
+| `Space p s` | Search passages in loaded tabs; `site:` and `group:` narrow the scope |
+| `Space Space` | Return to the previous tab in this window |
+| `Ctrl-o` / `Ctrl-i` | Older / newer reading position (physical Control on macOS) |
+| `Space p j` | Search the session jumplist |
+| `]]` / `[[` | Next / previous article heading |
+| `3]]`, `5j`, `2Ctrl-o` | Counts in Normal mode; 1–6 still choose colors in Visual/Highlight mode |
+| `zz` | Center the active passage |
+| `Space g g / n / m / u / f` | Find groups / create / move selected browser tabs / ungroup / focus current group or restore |
+| `Space e a / e` | Save a quick spot / choose or remove a saved spot |
+| `Space 1…9` | Go to a quick spot |
+| `Space j / k` | Next / previous result from a pinned search |
+| `Space w s / o` | Save this window as a workspace / restore a workspace |
+| `Space p q` | Search unresolved red Question annotations |
+
+Use Chrome’s native multi-selection before grouping to act on multiple tabs. Group focus collapses other groups and scopes tab search; invoking it again restores the previous collapsed state. Workspaces reuse matching open URLs and restore positions as pages load. They do not close existing tabs. Notes and drawings remain keyed to their original page URLs. Quick spots and workspaces persist in `~/.study-keys/navigation/study.json` and are included in JSON backups. Opening the question’s annotation editor lets you mark it resolved without deleting the note.
+
+Search results and the 100-entry reading jumplist are session-only. Cross-tab search inspects loaded readable text on demand, never wakes discarded tabs, and reports searchable coverage. It excludes inputs, closed disclosures, embedded frames, and sites where Study Keys is disabled. Tab titles can still be searched when page content is unavailable. No search index is written to your Git library. These navigation features are disabled in private windows.
+
+**Optional native vertical-tabs toggle:** update the helper, then opt in with `python3 install.py --extension-id YOUR_EXTENSION_ID --enable-vertical-tabs`. On macOS, Chrome needs Accessibility access in System Settings. The fixed action operates only while Google Chrome is foreground and only clicks its native **Expand Tabs / Collapse Tabs** button; enable vertical tabs in Chrome first. It never falls back to opening the Study Keys notes panel. Linux and Codex’s in-app browser have no supported native toggle in this build. To disable the optional integration, remove `~/.study-keys/.integration/vertical-tabs-enabled`. The default helper setup does not enable this action.
 
 On media websites, Normal-mode commands such as **Space**, **v → Space**, and **f** belong to Study Keys for the entire key press, including release. They do not also trigger the page’s playback or fullscreen shortcuts. To use website shortcuts, press **i** for Insert mode; **Ctrl+C** returns to Normal. Focused native media controls and website editors keep their own keys. **Reload existing tabs after updating** so the early keyboard handler is installed before site listeners.
 
@@ -124,7 +150,7 @@ On media websites, Normal-mode commands such as **Space**, **v → Space**, and 
 
 Files appear when that kind of content is saved. `notes.md` is a generated, readable view; edit notes in Study Keys. `.excalidraw` files include images and can be opened externally. Reopen a notebook after external edits or a Git checkout. A stale open editor cannot silently overwrite the newer scene.
 
-Chrome extensions cannot silently write arbitrary home-directory files. A small Python native messaging helper provides this access, restricted to the library folder and this extension's ID. It has no network or command execution API. Changes write to disk before reporting success; a browser cache remains for reading when the helper is unavailable. Existing browser records migrate once, without replacing existing disk records. Failed writes retain the editor's draft and show an error.
+Chrome extensions cannot silently write arbitrary home-directory files. A small Python native messaging helper provides this access, restricted to the library folder and this extension's ID. It has no network or arbitrary command execution API. An optional macOS integration exposes one fixed action to expand/collapse Chrome’s native vertical tabs; it is off until explicitly enabled. Changes write to disk before reporting success; a browser cache remains for reading when the helper is unavailable. Existing browser records migrate once, without replacing existing disk records. Failed writes retain the editor's draft and show an error.
 
 The helper and transaction journal are ignored by Git. No GitHub remote, automatic commits, or automatic pushes are configured. You can connect a private remote and commit the library yourself.
 
@@ -166,6 +192,8 @@ Current boundaries:
 4. Reload the pages you want to annotate. The library and sidebar show the local folder connection. Pin Study Keys from Chrome’s extension menu if desired.
 
 For updates, replace the files in the same loaded folder and click **Reload** on its extension card. Keep the extension installed so its ID and storage remain the same. If moving to a different folder or profile, rerun the helper installer with the new extension ID; it reconnects to the existing local files. Export/import also remains available.
+
+If a tab was open during an update, the badge changes to **Study Keys updated · Reload to reconnect**. Click it to reload when your website edits are safe. Study Keys leaves site keys alone while disconnected and retains saved annotations in the local library. Each browser has its own extension installation: updating Chrome does not reload the copy in Codex's browser. If no badge appears after reloading a page, check that browser's extension enablement and site access. Keep only one Study Keys copy enabled in each browser.
 
 ## Development
 
