@@ -8,7 +8,7 @@ Vim-style page navigation, word and paragraph endpoint labels, six highlight col
 2. Open Study Keys → Set up local folder. Download and extract `study-keys-local-helper.zip`.
 3. Run the exact command from the setup page in the helper folder, then check the connection.
 
-The installer creates `~/.study-keys` and registers the helper for your extension ID. It does not upload your library or add a Git remote. The Chrome Web Store listing is being prepared separately.
+The installer creates `~/.study-keys` and registers the helper for your extension ID. It does not upload your library or add a Git remote. The public Chrome Web Store listing has been submitted and is pending Google review. It is set to publish automatically after approval.
 
 [Setup and privacy](https://dragod812.github.io/study-keys/) · [Support](https://github.com/dragod812/study-keys/issues)
 

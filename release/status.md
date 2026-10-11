@@ -7,9 +7,11 @@
 - Website: https://dragod812.github.io/study-keys/
 - Privacy: https://dragod812.github.io/study-keys/privacy.html
 - Chrome Web Store draft ID: jcjililghkknjbifgcnnkipiblmmmhid
-- Draft: package, description, Education category, English (United States), icon, 3 screenshots, promo tile, homepage, support, privacy/permission explanations, local-data disclosures, reviewer instructions saved.
+- Submitted: package, description, Education category, English (United States), icon, 3 screenshots, promo tile, homepage, support, privacy/permission explanations, local-data disclosures, reviewer instructions.
 - Distribution: Public, free of charge, all regions.
-- Not submitted: Google requires a public publisher contact email and verification. The user authorized the contact address, and Google confirmed a verification email was sent. Awaiting verification before submission.
+- Google confirmed submission: Pending Review. Publisher contact email verified. Automatic publication after approval is enabled.
+- Google flagged broad HTTP/HTTPS access for possible in-depth review. This access supports the advertised navigation and highlight restoration on visited web pages.
+- Submission date: 2026-10-11 UTC. The listing is not live on the Web Store until approved.
 
 ## Verification
 
