@@ -1,6 +1,6 @@
 # Study Keys release status
 
-- Version: 1.5.0 (release prepared; store submission tracked below)
+- Version: 1.5.0
 - Publisher name: Sidharth Padhee (saved in Web Store publisher settings)
 - Public repository: https://github.com/dragod812/study-keys
 - Beta release: https://github.com/dragod812/study-keys/releases/tag/v1.5.0
@@ -9,15 +9,17 @@
 - Chrome Web Store draft ID: jcjililghkknjbifgcnnkipiblmmmhid
 - Submitted: package, description, Education category, English (United States), icon, 3 screenshots, promo tile, homepage, support, privacy/permission explanations, local-data disclosures, reviewer instructions.
 - Distribution: Public, free of charge, all regions.
-- Google confirmed submission: Pending Review. Publisher contact email verified. Automatic publication after approval is enabled.
+- Google confirmed 1.5.0 submission: Pending Review. Publisher contact email verified. Automatic publication after approval is enabled.
 - Google flagged broad HTTP/HTTPS access for possible in-depth review. This access supports the advertised navigation and highlight restoration on visited web pages.
 - Submission date: 2026-10-11 UTC. The listing is not live on the Web Store until approved.
 
-## Version 1.5.0 release preparation
+## Version 1.5.0 verification and publication
 
 65 JavaScript tests and 14 native helper tests passed. Production dependency audit reports zero known vulnerabilities. The package contains 469 files; its manifest and compiled scripts match the build, and fixtures, private evidence and personal library files are excluded. See [navigation verification](navigation-verification.md) for installed-Chrome, Hello Interview and Codex checks and their limits.
 
-The website and privacy policy now describe tab/passages search, the jumplist, groups, workspaces, quick spots, unresolved questions, and the optional macOS vertical-tabs helper. The 1.5.0 package adds `tabs` and `tabGroups` permissions. Publication steps are still in progress; the Pending Review statements above currently describe 1.4.2.
+The website and privacy policy now describe tab/passages search, the jumplist, groups, workspaces, quick spots, unresolved questions, and the optional macOS vertical-tabs helper. The 1.5.0 package adds `tabs` and `tabGroups` permissions. The previous 1.4.2 review was canceled so the tested replacement could be submitted. Google confirmed the uploaded package version as 1.5.0 and accepted the new permission explanations, updated listing and reviewer instructions. The final confirmation read **Pending Review**, with automatic publication selected. The Web Store listing is not live until Google approves it.
+
+GitHub `main` contains the implementation and release website. The public v1.5.0 release provides the extension ZIP, local helper ZIP and SHA256 sums; both downloaded assets match those sums. GitHub Pages successfully deployed the updated website and privacy policy. The final unpacked extension was reloaded in Chrome from `~/Code/study-keys/dist`, which displayed version 1.5.0 and Reloaded. Hello Interview document search was verified after refreshing its reading tab. Other already-open tabs should be reloaded when website edits are safe.
 
 ## Version 1.4.2 verification
 

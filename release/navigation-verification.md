@@ -97,3 +97,9 @@ Generated artifacts are in the ignored `.preview/` folder:
 - [Codex paragraph selection](../.preview/evidence/codex-hello-interview-paragraphs.jpg)
 - [Codex note restored after reload](../.preview/evidence/codex-hello-interview-note.jpg)
 - `navigation-tests.log`, `navigation-native-tests.log`, `navigation-build.log`
+
+## Final release checks
+
+The release package was rebuilt after the documentation/privacy updates. All 65 JavaScript and 14 native tests passed again; `npm audit --omit=dev` reported zero vulnerabilities. The 469-file ZIP excludes fixtures, private evidence and personal library files. Both assets downloaded from GitHub v1.5.0 match `SHA256SUMS-1.5.0.txt`. GitHub Pages built successfully from the release commit; the live shortcut guide and updated privacy policy were verified. The responsive shortcut table had no horizontal page overflow at 430 px.
+
+The final unpacked Chrome build was reloaded from `~/Code/study-keys/dist`; its details showed 1.5.0 and Reloaded. After refreshing the existing Hello Interview Introduction tab, `Space d s` / `assessment` returned two results. No user annotations were changed by these final release checks.
