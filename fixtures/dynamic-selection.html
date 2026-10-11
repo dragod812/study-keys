@@ -1,0 +1,16 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Stable selection · Study Keys</title><link rel="stylesheet" href="/highlights.css"><style>
+body{font:18px/1.8 system-ui;margin:30px auto;max-width:850px;padding:20px;background:#faf9f1;color:#243a33}button{font:inherit;margin:4px;padding:6px 12px}#ad{background:#e5eddf;padding:8px}#stage{height:330px}article{padding-top:10px;position:relative}#pane{height:140px;overflow:auto;border:1px solid #aaa}.inner{padding:12px;height:380px}#ticker{font-variant-numeric:tabular-nums}#updates{min-height:2em}</style></head><body>
+<h1>Stable selection during page updates</h1>
+<div id="controls"><button id="move">Move passage</button><button id="replace">Replace article nodes</button><button id="remove">Remove selected passage</button><button id="insert">Insert preceding text</button></div>
+<aside id="ad">Background update <span id="ticker">0</span></aside>
+<div id="stage"><article id="article"><h2>Reading target</h2><p id="passage">Reliable selections survive unrelated updates. Choose these words while advertisements refresh around the article.</p><p>The same word labels remain attached to the same words while the layout moves.</p></article></div>
+<div id="pane"><div class="inner"><p>Nested scrolling preserves the selected start word.</p><p style="margin-top:90px">Finish the selection inside this independent pane.</p></div></div>
+<p id="updates" aria-live="polite"></p>
+<script>
+let tick=0,moved=false;const report=text=>document.querySelector('#updates').textContent=text;
+setInterval(()=>document.querySelector('#ticker').textContent=String(++tick),350);
+document.querySelector('#move').onclick=()=>{moved=!moved;document.querySelector('#article').style.transform=moved?'translateY(60px)':'none';report('Passage moved '+(moved?'60':'0')+' pixels; page height unchanged.');};
+document.querySelector('#replace').onclick=()=>{const el=document.querySelector('#article');el.innerHTML=el.innerHTML;report('Article nodes replaced; wording unchanged.');};
+document.querySelector('#insert').onclick=()=>{const p=document.createElement('p');p.textContent='New introductory background text.';document.querySelector('#article').prepend(p);report('Text inserted before the passage.');};
+document.querySelector('#remove').onclick=()=>{document.querySelector('#passage').textContent='Replacement content no longer contains the original selection.';report('Original passage removed.');};
+</script><script src="/content.js"></script></body></html>

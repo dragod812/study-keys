@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Website keyboard controls · Study Keys test</title><link rel="stylesheet" href="/highlights.css"><style>body{max-width:850px;margin:60px auto;padding:25px;font:18px/1.7 system-ui;background:#faf9f1;color:#243a33}textarea,input,button,[contenteditable]{font:inherit;padding:10px;margin:10px 0;border:1px solid #b4c4b5;border-radius:8px}textarea{width:95%;height:100px}output{display:block;padding:10px;background:#e4eedd}dialog{border:1px solid #b4c4b5;border-radius:12px;max-width:600px}dialog::backdrop{background:#223a3355}</style></head><body>
+<h1>Website keyboard controls</h1>
+<p>In Insert mode, this website receives Escape, letters and its own keyboard shortcuts. Control C alone returns Study Keys to Normal mode.</p>
+<p>Visual and Highlight modes still use Escape to step back.</p>
+<button id="open-dialog">Open website dialog</button>
+<label>Website editor<textarea aria-label="Website editor"></textarea></label>
+<div contenteditable="true" role="textbox" aria-label="Website rich text editor">Editable website text.</div>
+<output id="received" aria-label="Website key received">Website has not received a key yet.</output>
+<p id="dialog-state">Website dialog is closed.</p>
+<dialog id="site-dialog" aria-label="Website dialog"><h2>Website dialog</h2><p>Escape closes this website dialog without leaving Insert mode.</p><input aria-label="Dialog text" placeholder="Website input"><button id="close-dialog">Close website dialog</button></dialog>
+<script>
+const dialog=document.querySelector('#site-dialog'),state=document.querySelector('#dialog-state');
+document.querySelector('#open-dialog').onclick=()=>{dialog.showModal();state.textContent='Website dialog is open.';};
+document.querySelector('#close-dialog').onclick=()=>dialog.close();
+dialog.addEventListener('close',()=>{state.textContent='Website dialog is closed.';});
+document.addEventListener('keydown',e=>{document.querySelector('#received').textContent='Website received: '+(e.ctrlKey?'Ctrl+':'')+(e.shiftKey?'Shift+':'')+e.key;});
+</script><script src="/content.js"></script></body></html>

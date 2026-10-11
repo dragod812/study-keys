@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.preview/
+__pycache__/
+*.pyc
+*.zip
+.DS_Store
+.release-repo/
+release/*-private.png

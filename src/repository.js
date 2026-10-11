@@ -1,0 +1,88 @@
+import {pageKey,cleanItem,validateBackup,normalizePageColors} from './core.js';
+import {cleanMark,cleanPosition} from './marks.js';
+import {cleanScene,cleanDrawing,cleanLayout} from './notebook-core.js';
+
+// A single serialized service-worker queue prevents read/modify/write races
+// between tabs. A timestamp check protects two editors of the same annotation.
+export function createRepository(storage,now=()=>Date.now()) {
+  let queue=Promise.resolve();
+  const enqueue=fn=>{const result=queue.then(fn);queue=result.catch(()=>{});return result;};
+  const get=async k=>(await storage.get(k))[k];
+  const page=async url=>normalizePageColors((await get('page:'+url))||{url,title:'',items:[]});
+  async function handle(m) {
+    if(m.type==='marks') {const url=pageKey(m.url);return {local:(await get('marks:'+url))?.marks||{},global:(await get('global-marks'))||{}};}
+    if(m.type==='setMark') {
+      if(!/^[a-zA-Z]$/.test(m.name))throw Error('Choose a–z for this page or A–Z for a global mark.');
+      const url=pageKey(m.url),mark=cleanMark({url,title:String(m.title||''),position:cleanPosition(m.position),updatedAt:now()},m.name),global=/^[A-Z]$/.test(m.name),key=global?'global-marks':'marks:'+url;
+      const record=(await get(key))||(global?{}:{url,title:mark.title,marks:{}});if(global)record[m.name]=mark;else{record.marks[m.name]=mark;record.title=mark.title;}
+      await storage.set({[key]:record});return mark;
+    }
+    if(m.type==='getMark') {if(!/^[a-zA-Z]$/.test(m.name))throw Error('Choose a mark letter.');const record=await get(/^[A-Z]$/.test(m.name)?'global-marks':'marks:'+pageKey(m.url)),mark=/^[A-Z]$/.test(m.name)?record?.[m.name]:record?.marks?.[m.name];if(!mark)throw Error('Mark '+m.name+' is not set. Use m'+m.name+' to set it.');return mark;}
+    if(m.type==='drawingLoad') {
+      const url=pageKey(m.url),data=await storage.get(null);
+      return {drawing:data['drawing:'+url]||null,layout:cleanLayout(data['notebook-layout']),
+        recoveries:Object.entries(data).filter(([k,v])=>k.startsWith('recovery:')&&v.url===url).map(([,v])=>v)};
+    }
+    if(m.type==='drawingLayout') {const layout=cleanLayout(m.layout);await storage.set({'notebook-layout':layout});return layout;}
+    if(m.type==='drawingSave') {
+      const url=pageKey(m.url),scene=cleanScene(m.scene),old=await get('drawing:'+url);
+      if((old?.revision||null)!==m.base) {
+        const id=/^[\w-]{1,80}$/.test(m.recoveryId||'')?m.recoveryId:crypto.randomUUID();
+        await storage.set({['recovery:'+id]:{id,url,title:String(m.title||'').slice(0,500),scene,revision:String(m.base||''),updatedAt:now()}});
+        throw Error('This notebook changed in another tab. Your draft is kept locally as a recovery copy. Export it, then reopen the saved version.');
+      }
+      const drawing={url,title:String(m.title||old?.title||'').slice(0,500),scene,revision:crypto.randomUUID(),updatedAt:Math.max(now(),(old?.updatedAt||0)+1)};
+      await storage.set({['drawing:'+url]:drawing});return {revision:drawing.revision,updatedAt:drawing.updatedAt};
+    }
+    if(m.type==='page') {
+      const url=pageKey(m.url),settings=(await get('settings'))||{};
+      const drawing=await get('drawing:'+url);
+      return {...await page(url),drawing:drawing?{updatedAt:drawing.updatedAt}:null,enabled:settings[new URL(url).origin]!==false};
+    }
+    if(m.type==='save') {
+      const url=pageKey(m.url),p=await page(url),item=cleanItem(m.item),old=p.items.find(i=>i.id===item.id);
+      if(old&&m.base!==old.updatedAt)throw Error('This note changed in another tab. Your draft is still here. Reopen the saved note before replacing it.');
+      item.updatedAt=Math.max(now(),(old?.updatedAt||0)+1);
+      p.items=p.items.filter(i=>i.id!==item.id).concat(item);p.title=String(m.title||p.title).slice(0,500);
+      await storage.set({['page:'+url]:p});return item;
+    }
+    if(m.type==='enabled') {
+      const origin=new URL(pageKey(m.url)).origin,settings=(await get('settings'))||{};
+      settings[origin]=!!m.enabled;await storage.set({settings});return {enabled:!!m.enabled};
+    }
+    if(m.type==='library'||m.type==='export') {
+      const data=await storage.get(null),pages=Object.entries(data).filter(([k])=>k.startsWith('page:')).map(([,v])=>normalizePageColors(v));
+      const drawings=Object.entries(data).filter(([k])=>k.startsWith('drawing:')).map(([,v])=>v),recoveries=Object.entries(data).filter(([k])=>k.startsWith('recovery:')).map(([,v])=>v);
+      const marks=Object.entries(data).filter(([k])=>k.startsWith('marks:')).map(([,v])=>v),globalMarks=data['global-marks']||{};
+      return {format:'study-keys',version:3,marks,globalMarks,exportedAt:new Date(now()).toISOString(),pages,drawings:m.type==='library'?drawings.map(({scene,...rest})=>rest):drawings,recoveries:m.type==='library'?[]:recoveries};
+    }
+    if(m.type==='import') {
+      const pages=validateBackup(m.backup);let imported=0,importedDrawings=0;const updates={};
+      const drawingList=m.backup.version>=2?m.backup.drawings:[],recoveryList=m.backup.version>=2?m.backup.recoveries:[];
+      if(!Array.isArray(drawingList)||!Array.isArray(recoveryList)||drawingList.length+recoveryList.length>10000)throw Error('Invalid notebook backup.');
+      const marks=m.backup.version>=3?m.backup.marks:[],globalMarks=m.backup.version>=3?m.backup.globalMarks:{};
+      if(!Array.isArray(marks)||marks.length>10000||!globalMarks||typeof globalMarks!=='object'||Array.isArray(globalMarks))throw Error('Invalid marks backup.');
+      const cleanedMarks=marks.map(p=>{const url=pageKey(p.url),entries={};if(!p.marks||typeof p.marks!=='object')throw Error('Invalid page marks.');for(const [name,mark]of Object.entries(p.marks)){if(!/^[a-z]$/.test(name))throw Error('Invalid local mark.');entries[name]=cleanMark(mark,name);if(entries[name].url!==url)throw Error('Mark belongs to another page.');}return {url,title:String(p.title||'').slice(0,500),marks:entries};});
+      const cleanedGlobal={};for(const [name,mark]of Object.entries(globalMarks)){if(!/^[A-Z]$/.test(name))throw Error('Invalid global mark.');cleanedGlobal[name]=cleanMark(mark,name);}
+      // Validate every scene before touching storage; old version 1 files stay compatible.
+      const drawings=drawingList.map(d=>({...cleanDrawing(d),url:pageKey(d.url)}));
+      const recoveries=recoveryList.map(d=>{if(!/^[\w-]{1,80}$/.test(d.id||''))throw Error('Invalid recovery ID.');return {...cleanDrawing(d),url:pageKey(d.url),id:d.id};});
+      for(const p of pages) {
+        const existing=updates['page:'+p.url]||await page(p.url),items=new Map(existing.items.map(i=>[i.id,i]));
+        for(const item of p.items){const old=items.get(item.id);if(!old||item.updatedAt>old.updatedAt){items.set(item.id,item);imported++;}}
+        updates['page:'+p.url]={url:p.url,title:existing.title||p.title,items:[...items.values()]};
+      }
+      for(const drawing of drawings){
+        const key='drawing:'+drawing.url,old=updates[key]||await get(key);
+        if(!old||drawing.updatedAt>old.updatedAt){updates[key]={...drawing,revision:crypto.randomUUID()};importedDrawings++;}
+      }
+      for(const recovery of recoveries){const key='recovery:'+recovery.id,old=await get(key);if(!old||recovery.updatedAt>old.updatedAt)updates[key]=recovery;}
+      for(const record of cleanedMarks){const key='marks:'+record.url,old=(await get(key))||{...record,marks:{}};for(const [name,mark]of Object.entries(record.marks))if(!old.marks[name]||mark.updatedAt>old.marks[name].updatedAt)old.marks[name]=mark;updates[key]=old;}
+      if(Object.keys(cleanedGlobal).length){const old=(await get('global-marks'))||{};for(const [name,mark]of Object.entries(cleanedGlobal))if(!old[name]||mark.updatedAt>old[name].updatedAt)old[name]=mark;updates['global-marks']=old;}
+      // Validate the entire file before this one atomic storage write.
+      await storage.set(updates);return {imported,importedDrawings};
+    }
+    throw Error('Unknown request.');
+  }
+  return m=>enqueue(()=>handle(m));
+}

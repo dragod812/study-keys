@@ -1,0 +1,36 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createRepository} from '../src/repository.js';
+const a='https://example.com/article',b='https://other.example/second';
+const position={x:0,y:750,pageX:0,pageY:750,pane:null,anchor:null,viewportY:0};
+const storage=()=>{const data={};return {data,get:async k=>structuredClone(k==null?data:{[k]:data[k]}),set:async v=>Object.assign(data,structuredClone(v))};};
+test('lowercase marks are page-scoped, uppercase marks are global, both survive restart',async()=>{
+ const disk=storage();let repo=createRepository(disk,()=>100);
+ await repo({type:'setMark',url:a,name:'a',title:'First',position});
+ await repo({type:'setMark',url:b,name:'a',title:'Second',position:{...position,y:200}});
+ await repo({type:'setMark',url:a,name:'A',title:'First',position});
+ repo=createRepository(disk,()=>200);
+ assert.equal((await repo({type:'getMark',url:a,name:'a'})).position.y,750);
+ assert.equal((await repo({type:'getMark',url:b,name:'a'})).position.y,200);
+ assert.equal((await repo({type:'getMark',url:b,name:'A'})).url,a);
+ await repo({type:'setMark',url:b,name:'A',title:'Second',position});
+ assert.equal((await repo({type:'getMark',url:a,name:'A'})).url,b);
+ assert.deepEqual(Object.keys((await repo({type:'marks',url:a})).local),['a']);
+ await assert.rejects(repo({type:'getMark',url:a,name:'z'}),/not set/);
+});
+test('marks back up and merge by timestamp; invalid marks reject the whole backup',async()=>{
+ const repo=createRepository(storage(),()=>100);
+ await repo({type:'setMark',url:a,name:'a',title:'First',position});
+ await repo({type:'setMark',url:a,name:'A',title:'First',position});
+ const backup=await repo({type:'export'}),disk=storage(),target=createRepository(disk,()=>200);
+ await target({type:'import',backup});
+ assert.equal((await target({type:'getMark',url:b,name:'A'})).url,a);
+ await target({type:'setMark',url:a,name:'a',title:'First',position:{...position,y:900}});
+ await target({type:'import',backup});
+ assert.equal((await target({type:'getMark',url:a,name:'a'})).position.y,900);
+ const bad=structuredClone(backup);bad.globalMarks.A.url='file:///etc/passwd';const before=structuredClone(disk.data);
+ await assert.rejects(target({type:'import',backup:bad}));assert.deepEqual(disk.data,before);
+ await target({type:'import',backup:{format:'study-keys',version:2,pages:[],drawings:[],recoveries:[]}});
+ assert.equal((await target({type:'getMark',url:a,name:'a'})).position.y,900);
+ await assert.rejects(target({type:'setMark',url:a,name:'a',title:'bad',position:{...position,y:NaN}}));
+});

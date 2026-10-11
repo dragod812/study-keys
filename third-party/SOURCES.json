@@ -1,0 +1,11 @@
+{
+  "Liberation-LICENSE.txt": "https://raw.githubusercontent.com/liberationfonts/liberation-1.7-fonts/master/License.txt",
+  "Cascadia-LICENSE.txt": "https://raw.githubusercontent.com/microsoft/cascadia-code/main/LICENSE",
+  "Xiaolai-OFL.txt": "https://raw.githubusercontent.com/lxgw/kose-font/master/OFL.txt",
+  "Excalifont-source.txt": "https://raw.githubusercontent.com/excalidraw/excalidraw/v0.18.1/packages/excalidraw/fonts/Excalifont/index.ts",
+  "Radix-MIT.txt": "https://raw.githubusercontent.com/radix-ui/primitives/main/LICENSE",
+  "Fastdom-MIT.txt": "https://github.com/wilsonpage/fastdom#license",
+  "Strictdom-MIT.txt": "https://github.com/wilsonpage/strictdom#license",
+  "React-remove-scroll-bar-MIT.txt": "https://raw.githubusercontent.com/theKashey/react-remove-scroll-bar/master/LICENSE",
+  "GPL-2.0.txt": "https://www.gnu.org/licenses/old-licenses/gpl-2.0.txt"
+}
