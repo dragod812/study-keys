@@ -9,7 +9,7 @@
 - Chrome Web Store draft ID: jcjililghkknjbifgcnnkipiblmmmhid
 - Draft: package, description, Education category, English (United States), icon, 3 screenshots, promo tile, homepage, support, privacy/permission explanations, local-data disclosures, reviewer instructions saved.
 - Distribution: Public, free of charge, all regions.
-- Not submitted: Google requires a public publisher contact email and verification. Awaiting the user's chosen email; do not publish an address inferred from account details.
+- Not submitted: Google requires a public publisher contact email and verification. The user authorized the contact address, and Google confirmed a verification email was sent. Awaiting verification before submission.
 
 ## Verification
 
