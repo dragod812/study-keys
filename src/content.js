@@ -8,10 +8,14 @@ import {request,watch} from './transport.js';
 import uiCSS from './ui.css';
 import {capturePosition,restorePosition} from './mark-dom.js';
 import {notebookWindow} from './notebook-window.js';
+import {keyboardBoundary} from './key-events.js';
 
 // The isolated content-script world owns the state. No page globals, eval,
 // network requests, HTML injection or changes to the site's text nodes.
-if(!document.querySelector('[data-study-keys]'))start();
+let keyHandler=null,uiOwner=null,uiKeyHandler=null;
+const releaseKeys=keyboardBoundary(window,{onKey:e=>keyHandler?.(e),ownsUI:e=>!!uiOwner?.(e),onUIKey:e=>uiKeyHandler?.(e)});
+function ready(){if(document.querySelector('[data-study-keys]')){releaseKeys();return;}start();}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ready,{once:true});else ready();
 function start() {
   const host=document.createElement('div');host.dataset.studyKeys='';
   host.style.cssText='all:initial!important;position:fixed!important;inset:0!important;pointer-events:none!important;z-index:2147483647!important;';
@@ -22,7 +26,7 @@ function start() {
   const badge=button('Study Keys · v select · ? help',help,'badge'),toast=el('div',null,'toast'),layer=el('div'),which=el('div',null,'which');
   badge.setAttribute('aria-label','Study Keys keyboard help');toast.setAttribute('role','status');toast.setAttribute('aria-live','polite');toast.hidden=which.hidden=true;surface.append(badge,toast,layer,which);
   let url=pageKey(location.href),items=[],enabled=true,insert=false,loading=0,index=null,resolved=new Map();
-  let dialog=null,previousFocus=null,closeGuard=null,mode=null,bar=null,labels=[],prefix='',startWord=null,pending=null;
+  let dialog=null,dialogKey=null,previousFocus=null,closeGuard=null,mode=null,bar=null,labels=[],prefix='',startWord=null,pending=null;
   let sequence=[],sequenceTimer,toastTimer,renderTimer,scrollFrame,hover=null,lastPane=null,lastPicker=null,findResults=[],findAt=-1;
   let disposed=false,routeHref=location.href,observed=null;
   let copySession=null;
@@ -41,7 +45,7 @@ function start() {
   function resetSequence(){sequence=[];clearTimeout(sequenceTimer);which.hidden=true;}
   function clearMode(){copySession=null;layer.hidden=false;scopeMenu=false;blockKind=null;clearTimeout(layoutTimer);layoutTimer=0;wordCache=[];nextWordCode=null;indexDirty=false;mode=null;markMode=null;labels=[];prefix='';startWord=null;pending=null;layer.replaceChildren();bar?.remove();bar=null;clearPreview();resetSequence();updateBadge();}
   function focusBack(){if(previousFocus?.isConnected&&previousFocus!==document.body)previousFocus.focus({preventScroll:true});}
-  function closeDialog(force=false){if(!dialog)return true;if(!force&&closeGuard&&!closeGuard())return false;dialog.close();dialog.remove();dialog=null;closeGuard=null;focusBack();return true;}
+  function closeDialog(force=false){if(!dialog)return true;if(!force&&closeGuard&&!closeGuard())return false;dialog.close();dialog.remove();dialog=null;dialogKey=null;closeGuard=null;focusBack();return true;}
   function openDialog(title){
     if(!closeDialog())return null;
     clearMode();previousFocus=document.activeElement;dialog=el('dialog');dialog.setAttribute('aria-label',title);
@@ -282,7 +286,7 @@ function start() {
       found=all.slice(0,150).map(x=>x.entry);list.replaceChildren();count.textContent=`${all.length} results${all.length>150?' · narrow to see more':''}`;
       found.forEach((entry,i)=>{const row=el('div',null,'result');row.id='sk-result-'+i;row.setAttribute('role','option');row.append(el('strong',entry.label),el('span',entry.detail||''));row.onclick=()=>choose(i);list.append(row);});select(0);if(remember)lastPicker.query=input.value;
     }
-    input.oninput=render;box.addEventListener('keydown',e=>{const k=keyOf(e);if(['ArrowDown','Ctrl-j','ArrowUp','Ctrl-k','Enter'].includes(k)){consume(e);if(k==='Enter')choose(at);else select(at+(['ArrowDown','Ctrl-j'].includes(k)?1:-1));}});render();input.focus();
+    input.oninput=render;dialogKey=e=>{const k=keyOf(e);if(['ArrowDown','Ctrl-j','ArrowUp','Ctrl-k','Enter'].includes(k)){consume(e);if(k==='Enter')choose(at);else select(at+(['ArrowDown','Ctrl-j'].includes(k)?1:-1));}};render();input.focus();
   }
   function writeLinkClipboard(text){
     if(navigator.clipboard?.writeText)return navigator.clipboard.writeText(text);
@@ -385,7 +389,7 @@ function start() {
       actions.append(button('Show passage',()=>{const r=resolved.get(item.id);if(!r){error.textContent='This passage is not currently found. Expand the page content or keep this note for reference.';return;}if(!closeDialog())return;r.startContainer.parentElement.scrollIntoView({block:'center',behavior:'instant'});paint('preview',[r]);}));
       actions.append(button(item.archived?'Restore':'Move to trash',async()=>{try{await save({...item,archived:!item.archived},item.updatedAt,editURL,editTitle);closeDialog(true);say(item.archived?'Annotation restored':'Moved to trash · recover it in the library');}catch(e){error.textContent=e.message;}}));
     }
-    box.append(palette,input,status,error,actions);box.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key==='Enter'){consume(e);saveButton.click();}});input.focus();
+    box.append(palette,input,status,error,actions);dialogKey=e=>{if((e.metaKey||e.ctrlKey)&&e.key==='Enter'){consume(e);saveButton.click();}};input.focus();
   }
   function closeDrawer(){drawer?.remove();drawer=null;}
   function pageSidebar(){
@@ -532,7 +536,15 @@ function start() {
       for(const [key,name]of choices){const row=el('div');row.append(el('kbd',key),el('span',name));which.append(row);}which.hidden=false;clearTimeout(sequenceTimer);sequenceTimer=setTimeout(resetSequence,5000);
     }
   }
-  document.addEventListener('keydown',onKey,true);
+  keyHandler=onKey;
+  uiOwner=e=>e.composedPath().includes(host);
+  uiKeyHandler=e=>{
+    // Site listeners see a closed-shadow host, not its textbox. Keep extension
+    // text entry private to its controls while preserving native input defaults.
+    const active=shadow.activeElement;
+    active?.onkeydown?.(e);
+    if(!e.defaultPrevented&&dialog&&active?.closest('dialog')===dialog)dialogKey?.(e);
+  };
   document.addEventListener('pointerover',e=>{if(e.target instanceof Element&&!e.composedPath().includes(host))hover=e.target;},true);
   document.addEventListener('focusin',e=>{if(!e.composedPath().includes(host)){lastPane=scrollPane(e.composedPath()[0]);hover=null;if(owned(e)){clearMode();}}},true);
   const scrolled=()=>{

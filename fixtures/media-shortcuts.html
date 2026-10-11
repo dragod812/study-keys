@@ -1,0 +1,41 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Player shortcut isolation · Study Keys</title>
+<link rel="stylesheet" href="/highlights.css">
+<script src="/content.js"></script>
+<script>
+// Register global capture listeners before the DOM/UI is ready, like a media
+// application. Player shortcuts deliberately listen to different event phases.
+const calls={keydown:0,keypress:0,keyup:0};let playing=false,full=false,pauses=0,fullscreenChanges=0;
+function togglePlayback(){const audio=document.querySelector('#audio');if(audio.paused){audio.play().catch(console.error);}else audio.pause();}
+function output(){const target=document.querySelector('#events');if(!target)return;target.textContent=JSON.stringify({playing,full,pauses,fullscreenChanges,mediaPaused:document.querySelector('#audio')?.paused,...calls});document.querySelector('#playback').textContent=playing?'Playing':'Paused';}
+for(const type of Object.keys(calls))window.addEventListener(type,e=>{
+  calls[type]++;
+  const editing=e.target.closest?.('input,textarea,[contenteditable]');
+  if(!editing&&!e.ctrlKey&&!e.metaKey&&!e.altKey){
+    if(type==='keydown'&&e.code==='Space'){togglePlayback();pauses++;}
+    if(type==='keyup'&&e.key.toLowerCase()==='f'){full=!full;fullscreenChanges++;}
+  }
+  output();
+},true);
+document.addEventListener('DOMContentLoaded',output);
+</script>
+<style>body{max-width:940px;margin:35px auto;padding:25px;font:18px/1.6 system-ui;color:#243c35;background:#f5f4ea}.player{background:#183a32;border-radius:16px;color:white;padding:35px;margin:24px 0}h1{margin:0}h2{font-size:22px}a{color:#24674f}input,textarea,button{font:inherit;padding:10px;border:1px solid #becfc1;border-radius:8px}textarea{display:block;width:90%;height:90px}output{display:block;font:14px/1.7 monospace;padding:15px;background:#e5efdf;white-space:pre-wrap}.links{display:flex;gap:30px}.player video{width:240px;height:50px}dialog{max-width:440px;border:1px solid #45654b;border-radius:10px}</style></head><body>
+<h1>Player shortcut isolation</h1><p>Normal mode: Space opens the Study Keys command menu. v then Space selects paragraphs. f opens control labels. Playback and fullscreen must stay unchanged.</p>
+<section class="player" aria-label="Media player"><strong id="playback">Paused</strong><audio id="audio" loop controls aria-label="Local silent test audio"></audio><p>Global player shortcuts: Space on keydown; f on keyup.</p><button id="focus-page">Focus reading page</button> <button id="toggle">Play / pause by clicking</button></section>
+<output id="events" aria-label="Website shortcut counters"></output>
+<h2>Read while the player continues</h2><p>Learning benefits from uninterrupted attention. A shortcut should have a single owner throughout its full key press.</p><p>Keyboard labels make it possible to select a paragraph, copy a link, or write a note while music continues in the background.</p>
+<div class="links"><a href="#first">First chapter</a><a href="#second">Second chapter</a><a href="#third">Third chapter</a></div>
+<h2 id="first">Native website controls</h2><label>Website search <input aria-label="Website search"></label><label>Website editor<textarea aria-label="Website editor"></textarea></label><div contenteditable role="textbox" aria-label="Website rich text">Editable text here.</div>
+<button id="site-modal">Open website dialog</button><dialog aria-label="Website dialog"><p>Website owns this dialog.</p><input aria-label="Dialog field"><button id="close-site-modal">Close site dialog</button></dialog>
+<p id="second">Native media and embedded editors retain their own keys when focused.</p><video controls tabindex="0" aria-label="Native video controls"></video><p id="third">End of test article.</p>
+<script>
+// A generated silent WAV exercises real media playback without external media.
+const wav=new ArrayBuffer(44+16000), view=new DataView(wav);
+const chars=(offset,text)=>{for(let i=0;i<text.length;i++)view.setUint8(offset+i,text.charCodeAt(i));};
+chars(0,'RIFF');view.setUint32(4,wav.byteLength-8,true);chars(8,'WAVEfmt ');view.setUint32(16,16,true);view.setUint16(20,1,true);view.setUint16(22,1,true);view.setUint32(24,8000,true);view.setUint32(28,8000,true);view.setUint16(32,1,true);view.setUint16(34,8,true);chars(36,'data');view.setUint32(40,16000,true);new Uint8Array(wav,44).fill(128);
+const audio=document.querySelector('#audio');audio.src=URL.createObjectURL(new Blob([wav],{type:'audio/wav'}));
+for(const type of ['play','pause'])audio.addEventListener(type,()=>{playing=!audio.paused;output();});
+document.querySelector('#focus-page').onclick=()=>{document.activeElement.blur();};
+document.querySelector('#toggle').onclick=()=>{togglePlayback();pauses++;output();};
+document.querySelector('#site-modal').onclick=()=>document.querySelector('dialog').showModal();
+document.querySelector('#close-site-modal').onclick=()=>document.querySelector('dialog').close();
+</script></body></html>

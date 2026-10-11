@@ -27,7 +27,7 @@ DRAW NEXT TO THE IDEA
 Each page can have an Excalidraw notebook. Float it, resize it, dock it to an edge or corner, or maximize it. Import and export .excalidraw files. Drawings and embedded images save locally with the page.
 
 KEEP YOUR HANDS ON THE KEYS
-Use Vim-style scrolling, link hints, page search, an outline, and tab navigation. Lowercase marks remember places on a page; uppercase marks travel across tabs. Normal, Visual, and Highlight modes have distinct jobs. Insert mode passes keys through to the website; Ctrl+C returns to Normal mode. Press ? for the keyboard guide. Use one Vim navigation extension at a time to avoid conflicting shortcuts.
+Use Vim-style scrolling, link hints, page search, an outline, and tab navigation. Lowercase marks remember places on a page; uppercase marks travel across tabs. Normal, Visual, and Highlight modes have distinct jobs. Insert mode passes keys through to the website; Ctrl+C returns to Normal mode. Handled Study Keys commands also claim key release, preventing simultaneous playback or fullscreen shortcuts on media pages. Reload existing tabs after updating. Press ? for the keyboard guide. Use one Vim navigation extension at a time to avoid conflicting shortcuts.
 
 YOUR LIBRARY, IN YOUR FOLDER
 Highlights, notes, marks, and drawings save in ~/.study-keys, organized by website and page. Chrome keeps a local cache. Export a backup or manage the folder with your own Git workflow. The helper initializes a local Git repository but never adds a remote, commits, or uploads your library. No Study Keys account, analytics, or cloud sync service is required or used.
@@ -67,6 +67,8 @@ This beta requires macOS or Linux, Chrome 131+, Python 3.11+, and Git. No login 
 10. The library page offers JSON backup/import and Trash recovery. Private browsing and restricted Chrome pages are not part of this beta.
 
 11. On https://dragod812.github.io/study-keys/, press d and type a link label to copy its URL. Shift+D keeps labels visible for multiple selections; paste into a text editor to verify one unique URL per line. Matching URLs share green copied checkmarks. Escape finishes.
+
+12. On a media page after a full reload, with focus outside the native player or an editor, Space opens the Study Keys menu, v → Space opens selection scopes, and f opens hints without also activating the page shortcuts. Press i to use the website’s global playback keys; Ctrl+C returns to Normal. Focused native media controls still own their keys.
 
 No credentials are needed. If the helper is unavailable, the setup page shows the error and writes fail visibly. To remove the integration, remove the com.studykeys.local.json native-host registration and ~/.study-keys/.integration after preserving your library. Uninstalling the extension does not delete the local library.
 

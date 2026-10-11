@@ -99,6 +99,8 @@ Marks preserve horizontal and vertical scroll, including independent reading pan
 | `Ctrl+C` in Insert mode | Return to Normal; leave the focused website field without changing its text |
 | `?` | Searchable guide and persistent per-site enable setting |
 
+On media websites, Normal-mode commands such as **Space**, **v → Space**, and **f** belong to Study Keys for the entire key press, including release. They do not also trigger the page’s playback or fullscreen shortcuts. To use website shortcuts, press **i** for Insert mode; **Ctrl+C** returns to Normal. Focused native media controls and website editors keep their own keys. **Reload existing tabs after updating** so the early keyboard handler is installed before site listeners.
+
 `Space` shows an immediate command menu. Normal Tab navigation remains available. Inputs, editable regions, editor widgets, media controls, IME and Cmd/Alt shortcuts keep their native behavior. Inside a site-owned modal, Study Keys yields to the site.
 
 ## Local folder
@@ -189,6 +191,7 @@ npm run preview
 - `http://127.0.0.1:8788/` — documentation layout
 - `http://127.0.0.1:8789/` — essay layout
 - `http://127.0.0.1:8790/` — dynamic application with an independent scroll pane
+- `http://127.0.0.1:8788/fixtures/media-shortcuts.html` — real local audio with competing page keyboard listeners
 - `http://127.0.0.1:8788/fixtures/dom-tests.html` — browser DOM/range regression checks
 
 The preview uses a separate local test repository under `.preview/`, not the extension’s production storage. Add `?installed=1` to a fixture URL when testing the actual installed extension; this omits the preview script. See **VERIFICATION.md** for observed results and limitations.
