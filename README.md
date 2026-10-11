@@ -78,6 +78,8 @@ Marks preserve horizontal and vertical scroll, including independent reading pan
 | `Space n` | Add a page note without a text selection |
 | `Space p f` | Open the library across all websites |
 | `s` | Search links and controls; Ctrl-j/k or arrows, then Enter |
+| `d` | Label visible links; type a label to copy its URL |
+| `Shift+D` / `D` | Keep typing link labels to add unique URLs to one clipboard list, one per line; Escape finishes |
 | `f` / `F` | Visible control hints / open a labeled link in a new tab |
 | `o` / `O` | Open an HTTP(S) URL / open it in a new tab |
 | `h j k l` | Scroll the active page or pane |
@@ -192,3 +194,9 @@ npm run preview
 The preview uses a separate local test repository under `.preview/`, not the extension’s production storage. Add `?installed=1` to a fixture URL when testing the actual installed extension; this omits the preview script. See **VERIFICATION.md** for observed results and limitations.
 
 Background page updates preserve the current word-label prefix, selected start and selected passage. Labels track scrolling and layout movement without changing their codes. If the selected text itself disappears or cannot be identified safely after replacement, Study Keys asks you to select again.
+
+### Copying links
+
+In Normal mode, press `d` to label visible links directly on the page, just like `f`. Type a label to copy its full URL without opening it. No dialog or search box opens. `Shift+D` / `D` keeps the labels active and builds an ordered, deduplicated clipboard list, one URL per line. Copied links turn green with a checkmark. Escape finishes and leaves the list on your clipboard; another `D` session starts a fresh list.
+
+Arrow keys or Ctrl-d/u scroll to more links while keeping the current list. Labels follow layout changes and keep their codes while their link remains unchanged. Hidden, obscured, collapsed, editor-owned, and executable pseudo-links are excluded. Clipboard failures leave the list intact and do not mark the failed link as copied. Full query strings and fragments are preserved.

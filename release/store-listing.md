@@ -17,6 +17,9 @@ macOS / Linux beta — a separate local helper is REQUIRED for saving. Requires 
 SELECT WITHOUT REACHING FOR THE MOUSE
 Press v to show labels on visible words. Type a start label and an end label, then copy, highlight, or add a note. Use v → Space → p to select a range of paragraphs by its endpoints. The selection menu also supports heading sections and the loaded, readable page text.
 
+COPY LINKS BY THEIR LABELS
+Press d to label visible links directly on the page, then type a label to copy its full URL. Shift+D keeps the labels active and builds a clipboard list, one unique URL per line. Matching URLs share a green copied checkmark. Scroll to find more links; Escape finishes. No copy dialog opens.
+
 HIGHLIGHT WITH A PURPOSE
 Six colors have memorable meanings: yellow for Key idea, blue for Key word, green for Positives, orange for Negatives, purple for Game changer, and red for Question. Add your own explanation to a passage and revisit all of the page's highlights and notes in a sidebar.
 
@@ -62,6 +65,8 @@ This beta requires macOS or Linux, Chrome 131+, Python 3.11+, and Git. No login 
 8. Press i: normal website input, including Escape, is untouched. Ctrl+C returns to Normal.
 9. mA sets a global page mark; 'A from another tab returns to it. ma / 'a are local marks.
 10. The library page offers JSON backup/import and Trash recovery. Private browsing and restricted Chrome pages are not part of this beta.
+
+11. On https://dragod812.github.io/study-keys/, press d and type a link label to copy its URL. Shift+D keeps labels visible for multiple selections; paste into a text editor to verify one unique URL per line. Matching URLs share green copied checkmarks. Escape finishes.
 
 No credentials are needed. If the helper is unavailable, the setup page shows the error and writes fail visibly. To remove the integration, remove the com.studykeys.local.json native-host registration and ~/.study-keys/.integration after preserving your library. Uninstalling the extension does not delete the local library.
 

@@ -18,8 +18,8 @@ export function spanRebaser(previous,next) {
 // Reserve several unused branches for growth. Expand them breadth-first so
 // constantly refreshed widgets cannot produce increasingly long label codes.
 // Existing labels are never reassigned, and every code remains prefix-free.
-export function wordCodePool(count) {
-  const width=hintCodes(Math.max(ALPHABET.length+1,Math.ceil((count+1)/.75)))[0].length;
+export function wordCodePool(count,minimum=ALPHABET.length+1) {
+  const width=hintCodes(Math.max(minimum,Math.ceil((count+1)/.75)))[0].length;
   let pool=hintCodes(ALPHABET.length**width),at=0;
   const branches=pool.splice(-Math.ceil(pool.length/4));
   return ()=>{

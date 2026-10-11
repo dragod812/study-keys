@@ -2,6 +2,7 @@ import {COLORS,hintCodes,keyOf,pageKey,makeAnchor,resolveAnchor,score,highlightS
 import {buildIndex,fromSelection,wordTokens,visibleRect,owned,available,scrollPane,label,targets,pageDialog} from './dom.js';
 import {paragraphSpans,visibleScopes,expandScope,selectionText} from './selection-scopes.js';
 import {spanRebaser,wordCodePool} from './selection-dom.js';
+import {linkEntries,linkRect,currentLink,createLinkCollection} from './link-copy.js';
 import {placeWordLabels} from './label-layout.js';
 import {request,watch} from './transport.js';
 import uiCSS from './ui.css';
@@ -24,6 +25,7 @@ function start() {
   let dialog=null,previousFocus=null,closeGuard=null,mode=null,bar=null,labels=[],prefix='',startWord=null,pending=null;
   let sequence=[],sequenceTimer,toastTimer,renderTimer,scrollFrame,hover=null,lastPane=null,lastPicker=null,findResults=[],findAt=-1;
   let disposed=false,routeHref=location.href,observed=null;
+  let copySession=null;
   let drawer=null,drawerSearch='',annotationAt=-1,newTabHints=false;
   let writingHighlight=false,selectionMode='visual',markMode=null;
   let indexDirty=false,wordCache=[],nextWordCode=null,layoutTimer=0,scopeMenu=false,blockKind=null;
@@ -37,7 +39,7 @@ function start() {
   function paint(name,ranges){if(CSS.highlights&&globalThis.Highlight)CSS.highlights.set('studykeys-'+name,new Highlight(...ranges));}
   function clearPreview(){CSS.highlights?.delete('studykeys-preview');}
   function resetSequence(){sequence=[];clearTimeout(sequenceTimer);which.hidden=true;}
-  function clearMode(){layer.hidden=false;scopeMenu=false;blockKind=null;clearTimeout(layoutTimer);layoutTimer=0;wordCache=[];nextWordCode=null;indexDirty=false;mode=null;markMode=null;labels=[];prefix='';startWord=null;pending=null;layer.replaceChildren();bar?.remove();bar=null;clearPreview();resetSequence();updateBadge();}
+  function clearMode(){copySession=null;layer.hidden=false;scopeMenu=false;blockKind=null;clearTimeout(layoutTimer);layoutTimer=0;wordCache=[];nextWordCode=null;indexDirty=false;mode=null;markMode=null;labels=[];prefix='';startWord=null;pending=null;layer.replaceChildren();bar?.remove();bar=null;clearPreview();resetSequence();updateBadge();}
   function focusBack(){if(previousFocus?.isConnected&&previousFocus!==document.body)previousFocus.focus({preventScroll:true});}
   function closeDialog(force=false){if(!dialog)return true;if(!force&&closeGuard&&!closeGuard())return false;dialog.close();dialog.remove();dialog=null;closeGuard=null;focusBack();return true;}
   function openDialog(title){
@@ -51,6 +53,10 @@ function start() {
     const row=el('div',null,'row');row.append(el('strong',title,'grow'),button('Esc',cancel));bar.append(row,el('p',description));surface.append(bar);return row;
   }
   function cancel(){
+    if(mode==='copy-links'){
+      if(copySession?.busy){copySession.finish=true;layer.hidden=true;renderCopyLabels();return;}
+      clearMode();return;
+    }
     if(scopeMenu){scopeMenu=false;layer.hidden=false;renderCurrent();return;}
     if(prefix){prefix='';renderLabels();return;}
     if(mode==='blocks'&&startWord){startWord=null;renderLabels();return;}
@@ -187,7 +193,9 @@ function start() {
   }
   function trackLayout(){
     clearTimeout(layoutTimer);
-    if(!selecting()||document.hidden)return;
+    if(document.hidden)return;
+    if(mode==='copy-links'){layoutTimer=setTimeout(()=>{rebuildCopyLabels();trackLayout();},120);return;}
+    if(!selecting())return;
     layoutTimer=setTimeout(()=>{
       if(refreshSelection()){if(['start','end','blocks'].includes(mode)&&!scopeMenu)rebuildLabels();trackLayout();}
     },120);
@@ -213,6 +221,7 @@ function start() {
     renderLabels();
   }
   function renderLabels(){
+    if(mode==='copy-links'){renderCopyLabels();return;}
     if(mode==='links'){
       for(const item of labels)item.tag.hidden=!item.code.startsWith(prefix);return;
     }
@@ -226,6 +235,7 @@ function start() {
     if(startWord){const remaining=labels.filter(l=>!l.tag.hidden),target=prefix&&remaining.length===1?remaining[0]:startWord;const r=index.range(Math.min(startWord.start,target.start),Math.max(startWord.end,target.end));paint('preview',r?[r]:[]);}else clearPreview();
   }
   function chooseLabel(item){
+    if(mode==='copy-links'){copyLabeledLink(item);return;}
     if(mode==='links'){if(available(item.target)){const inNewTab=newTabHints;clearMode();if(inNewTab&&item.target.matches('a[href]'))attempt(()=>request({type:'navigate',action:'open',target:item.target.href,newTab:true}));else activate(item.target);}else{clearMode();say('That control changed. Press f again.');}return;}
     if(mode==='blocks'){
       if(blockKind==='paragraph'){
@@ -239,6 +249,7 @@ function start() {
     else choosePassage(startWord.start,item.end);
   }
   function typeLabel(key){
+    if(mode==='copy-links'){if(copySession?.finish||(copySession?.busy&&!copySession.multiple))return;rebuildCopyLabels();}
     if(['start','end','blocks'].includes(mode))rebuildLabels();
     if(key==='Backspace'){prefix=prefix.slice(0,-1);renderLabels();return;}
     if(!/^[a-z]$/i.test(key))return;
@@ -272,6 +283,75 @@ function start() {
       found.forEach((entry,i)=>{const row=el('div',null,'result');row.id='sk-result-'+i;row.setAttribute('role','option');row.append(el('strong',entry.label),el('span',entry.detail||''));row.onclick=()=>choose(i);list.append(row);});select(0);if(remember)lastPicker.query=input.value;
     }
     input.oninput=render;box.addEventListener('keydown',e=>{const k=keyOf(e);if(['ArrowDown','Ctrl-j','ArrowUp','Ctrl-k','Enter'].includes(k)){consume(e);if(k==='Enter')choose(at);else select(at+(['ArrowDown','Ctrl-j'].includes(k)?1:-1));}});render();input.focus();
+  }
+  function writeLinkClipboard(text){
+    if(navigator.clipboard?.writeText)return navigator.clipboard.writeText(text);
+    // HTTP pages lack the async Clipboard API. Keep this fallback inside the
+    // direct key/click gesture, with no new extension clipboard permission.
+    const field=el('textarea');field.value=text;field.readOnly=true;field.tabIndex=-1;field.setAttribute('aria-hidden','true');field.style.cssText='position:fixed;left:0;top:0;width:1px;height:1px;opacity:0;';
+    const parent=dialog||surface,focused=shadow.activeElement;parent.append(field);
+    try{field.focus({preventScroll:true});field.select();if(!document.execCommand('copy'))throw Error('Chrome blocked copying. Focus this page and try the label again.');return Promise.resolve();}
+    finally{field.remove();focused?.focus({preventScroll:true});}
+  }
+  function copyLinks(multiple=false){
+    clearMode();getSelection()?.removeAllRanges();mode='copy-links';lastPane=scrollPane(hover||document.activeElement);
+    copySession={multiple,collection:createLinkCollection(writeLinkClipboard),cache:new Map(),nextCode:wordCodePool(linkEntries().filter(entry=>linkRect(entry.target)).length,1),busy:false,queued:[],message:''};
+    makeBar(multiple?'COPY LINKS · build a list':'COPY LINK · choose a label','');
+    bar.classList.add('copy-bar');bar.setAttribute('aria-label','Study Keys copy links');bar.querySelector('p').setAttribute('aria-live','polite');
+    rebuildCopyLabels();trackLayout();
+  }
+  function rebuildCopyLabels(){
+    const session=copySession;if(mode!=='copy-links'||!session)return;
+    if(session.finish){renderCopyLabels();return;}
+    const active=[];
+    for(const entry of linkEntries()){
+      const rect=linkRect(entry.target);if(!rect)continue;
+      let item=session.cache.get(entry.target);
+      if(!item||item.url!==entry.url){item?.tag.remove();item={...entry,code:session.nextCode(),tag:el('span',null,'hint link copy-link')};session.cache.set(entry.target,item);layer.append(item.tag);}
+      item.rect=rect;item.label=entry.label;active.push(item);
+      const copied=session.collection.has(item.url),text=item.code+(copied?' ✓':'');
+      if(item.tag.textContent!==text)item.tag.textContent=text;
+      item.tag.dataset.code=item.code;item.tag.dataset.copied=String(copied);item.tag.setAttribute('aria-label',item.code+': copy '+item.label+(copied?' · copied':''));item.tag.title=item.label+' · '+item.url;
+      item.tag.style.left=Math.max(2,Math.min(innerWidth-48,rect.left))+'px';item.tag.style.top=Math.max(2,rect.top)+'px';
+    }
+    const visible=new Set(active);for(const item of session.cache.values())if(!visible.has(item))item.tag.hidden=true;
+    labels=active;renderCopyLabels();
+    // Keep the nonmodal status out of the way of bottom-of-page links when
+    // there is more room above. Label hit tests pass through this status bar.
+    const box=bar.getBoundingClientRect(),hits=top=>active.filter(({rect:r})=>r.right>box.left&&r.left<box.right&&r.bottom>top&&r.top<top+box.height).length;
+    bar.classList.toggle('copy-bar-top',hits(12)<hits(innerHeight-58-box.height));
+  }
+  function renderCopyLabels(){
+    const session=copySession;if(!session)return;
+    for(const item of labels)item.tag.hidden=!item.code.startsWith(prefix);
+    const count=session.collection.urls.length;
+    const title=session.finish?'Finishing clipboard list…':session.multiple?`COPY LINKS · ${count} ${count===1?'URL':'URLs'} copied`:'COPY LINK · type a label';
+    const heading=title+(prefix?' · '+prefix:'');if(bar.querySelector('strong').textContent!==heading)bar.querySelector('strong').textContent=heading;
+    const description=session.finish?'Completing the chosen links before returning to Normal…':(session.busy?'Copying… · ':session.message?session.message+' · ':'')+(labels.length?'Type a link label':'No visible links; scroll to find more')+(session.multiple?' · one URL per line':'')+' · ↑ ↓ scroll · Backspace corrects · Esc finishes';
+    if(bar.querySelector('p').textContent!==description)bar.querySelector('p').textContent=description;
+  }
+  async function copyLabeledLink(item){
+    const session=copySession;if(!session)return;
+    if(session.busy){if(session.multiple){session.queued.push(item);prefix='';renderCopyLabels();}return;}
+    session.busy=true;prefix='';renderCopyLabels();
+    try{
+      const destination=currentLink(item);if(!linkRect(item.target))throw Error('That link is no longer visible. Choose a current label.');
+      if(session.multiple){
+        const result=await session.collection.copy(destination);
+        session.message=result.duplicate?'Already copied':`Added ${item.label.slice(0,85)}`;
+      }else{
+        await writeLinkClipboard(destination);
+        if(copySession===session){clearMode();say('Link copied · '+destination);}
+      }
+    }catch(e){if(copySession===session){session.message=e.message||'Copy failed. Try again.';say(session.message);}}
+    finally{
+      session.busy=false;
+      if(copySession===session){
+        rebuildCopyLabels();
+        if(session.queued.length)copyLabeledLink(session.queued.shift());
+        else if(session.finish){const count=session.collection.urls.length;clearMode();say(count?`${count} ${count===1?'URL':'URLs'} on clipboard`:'No links copied');}
+      }
+    }
   }
   function jump(){openPicker('Jump to a link or control',targets().map(target=>({label:label(target),detail:target.tagName==='A'?'Link · '+target.getAttribute('href'):target.tagName.toLowerCase(),run:()=>activate(target)})));}
   function focus(target){if(!target?.isConnected)return say('This section moved. Search again.');target.scrollIntoView({block:'center',behavior:'instant'});if(!target.hasAttribute('tabindex'))target.tabIndex=-1;target.focus({preventScroll:true});lastPane=scrollPane(target);}
@@ -347,7 +427,7 @@ function start() {
   }
   function help(){
     const box=openDialog('A quieter way to read');if(!box)return;
-    box.append(el('p','v then Space offers paragraphs, sections and the whole page. Paragraphs use start and end labels; choose the same label twice for one paragraph. After choosing a passage, p expands to paragraphs, s to its enclosing heading section, and a selects the page. y copies with paragraph breaks. NORMAL: navigate. v → labels → VISUAL: h highlights, y copies, n adds a note. Shift+V → labels → HIGHLIGHT: 1–6 saves a color. Esc steps back. ma / '+"'a"+' set / jump to a page mark; mA / '+"'A"+' work across tabs. Everything stays on this device.','muted'));
+    box.append(el('p','v then Space offers paragraphs, sections and the whole page. Paragraphs use start and end labels; choose the same label twice for one paragraph. After choosing a passage, p expands to paragraphs, s to its enclosing heading section, and a selects the page. y copies with paragraph breaks. NORMAL: navigate. v → labels → VISUAL: h highlights, y copies, n adds a note. Shift+V → labels → HIGHLIGHT: 1–6 saves a color. Esc steps back. ma / '+"'a"+' set / jump to a page mark; mA / '+"'A"+' work across tabs. d labels visible links to copy one URL; Shift+D keeps labels active and builds a clipboard list, one URL per line. Everything stays on this device.','muted'));
     const setting=el('label'),check=el('input');check.type='checkbox';check.checked=enabled;check.onchange=async()=>{try{await request({type:'enabled',url,enabled:check.checked});enabled=check.checked;insert=false;updateBadge();}catch(e){check.checked=enabled;say(e.message);}};setting.append(check,document.createTextNode(' Enable letter shortcuts on '+location.hostname));
     const filter=el('input');filter.type='search';filter.placeholder='Filter keyboard shortcuts…';filter.setAttribute('aria-label','Filter keyboard shortcuts');
     const grid=el('div',null,'keymap');for(const c of commands){const row=el('div');row.append(el('kbd',c.keys.join(' ')),el('span',c.label));grid.append(row);}
@@ -367,6 +447,8 @@ function start() {
     {keys:['`'],label:'Jump to a saved scroll position',run:()=>beginMark('jump')},
     {keys:['Space','m'],label:'Search local and global marks',run:markPicker},
     {keys:['s'],label:'Search links and controls',run:jump},
+    {keys:['d'],label:'Copy a link · type its visible label',run:()=>copyLinks()},
+    {keys:['D'],label:'Copy labeled links · one URL per line',run:()=>copyLinks(true)},
     {keys:['f'],label:'Label visible links and controls',run:()=>linkHints()},
     {keys:['F'],label:'Open a labeled link in a new tab',run:()=>linkHints(true)},
     {keys:['o'],label:'Open a URL',run:()=>openAddress()},
@@ -426,7 +508,7 @@ function start() {
     if(markMode){consume(e);if(/^[a-zA-Z]$/.test(k)&&!e.repeat){const action=markMode;clearMode();if(action==='set')setMark(k);else jumpMark(k);}return;}
     if(scopeMenu){consume(e);const choice=scopeChoices.find(c=>c.key===k);if(choice){scopeMenu=false;choice.run();}return;}
     if(selecting()&&k==='Space'){consume(e);openScopeMenu();return;}
-    if(['start','end','blocks','links'].includes(mode)){
+    if(['start','end','blocks','links','copy-links'].includes(mode)){
       if(k==='Tab'){clearMode();return;}
       if(['ArrowDown','ArrowUp','PageDown','PageUp','Ctrl-d','Ctrl-u'].includes(k)&&mode!=='links'){consume(e);move(0,['ArrowUp','PageUp','Ctrl-u'].includes(k)?-.5:.5);return;}
       if(k==='Backspace'||/^[a-z]$/i.test(k)){consume(e);if(!e.repeat)typeLabel(k);}return;
@@ -454,6 +536,7 @@ function start() {
   document.addEventListener('pointerover',e=>{if(e.target instanceof Element&&!e.composedPath().includes(host))hover=e.target;},true);
   document.addEventListener('focusin',e=>{if(!e.composedPath().includes(host)){lastPane=scrollPane(e.composedPath()[0]);hover=null;if(owned(e)){clearMode();}}},true);
   const scrolled=()=>{
+    if(mode==='copy-links'){rebuildCopyLabels();return;}
     if(mode==='links'){clearMode();return;}
     if(['start','end','blocks'].includes(mode)&&!scrollFrame){scrollFrame=requestAnimationFrame(()=>{scrollFrame=0;rebuildLabels();});}
   };
@@ -479,6 +562,6 @@ function start() {
     if(message?.type==='jumpAnnotation'){const item=items.find(i=>i.id===message.id);if(item)showAnnotation(item);respond({found:!!item&&resolved.has(item.id)});}
     if(message?.type==='beginHighlight'){closeDialog();beginWords();respond({started:true});}
   });
-  document.addEventListener('visibilitychange',()=>{if(!document.hidden){if(selecting()){indexDirty=true;trackLayout();}else if(!dialog&&!mode)load();}});
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden){if(selecting()||mode==='copy-links'){indexDirty=true;trackLayout();}else if(!dialog&&!mode)load();}});
   load();
 }

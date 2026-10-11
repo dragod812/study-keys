@@ -1,3 +1,4 @@
+import {linkEntries,linkRect,currentLink} from '/src/link-copy.js';
 import {paragraphSpans,sectionSpans,expandScope,selectionText} from '/src/selection-scopes.js';
 import {spanRebaser} from '/src/selection-dom.js';
 import {buildIndex,fromSelection,wordTokens,pageDialog} from '/src/dom.js';
@@ -82,5 +83,20 @@ test('large page can be selected for copy without expanding saved-anchor limits'
  root.prepend(document.createTextNode('Background prefix. '));
  const next=buildIndex(root),found=spanRebaser(data,next)(span);eq(next.text.slice(found.start,found.end),span.anchor.quote);
  let rejected=false;try{makeAnchor(data.text,0,data.text.length);}catch{rejected=true;}eq(rejected,true);
+});
+test('link inventory includes below-fold links and excludes hidden, collapsed, executable and editor links',()=>{
+ root.innerHTML='<a href="/visible#part">Visible link</a><a href="/far" style="position:absolute;top:9000px">Far link</a><div hidden><a href="/hidden">Hidden link</a></div><details><summary>Closed</summary><a href="/closed">Closed link</a></details><a href="javascript:void(0)">Script</a><button>Not a link</button><div contenteditable><a href="/editor">Editor</a></div><div style="opacity:0"><a href="/invisible">Invisible</a></div>';
+ const links=linkEntries(root);eq(links.map(x=>x.label).join(','),'Visible link,Far link');eq(links[0].url,new URL('/visible#part',location.href).href);
+});
+test('copy checks the displayed destination still belongs to a connected available link',()=>{
+ root.innerHTML='<a href="/original">Changing link</a>';const entry=linkEntries(root)[0];eq(currentLink(entry),entry.url);
+ entry.target.href='/different';let failed=false;try{currentLink(entry);}catch{failed=true;}eq(failed,true);
+ entry.target.href='/original';root.style.opacity='0';failed=false;try{currentLink(entry);}catch{failed=true;}eq(failed,true);root.style.opacity='';
+ entry.target.remove();failed=false;try{currentLink(entry);}catch{failed=true;}eq(failed,true);
+});
+test('link hints exclude below-fold, obscured and scroll-clipped links',()=>{
+ root.innerHTML='<a href="/hint" style="position:fixed;left:40px;top:40px;z-index:10">Visible hint</a><a href="/far" style="position:absolute;top:9000px">Far link</a><div style="position:fixed;left:40px;top:80px;overflow:hidden;height:10px"><a href="/clipped" style="display:block;margin-top:30px">Clipped link</a></div>';
+ const entries=linkEntries(root);eq(!!linkRect(entries[0].target),true);eq(linkRect(entries[1].target),null);eq(linkRect(entries[2].target),null);
+ const cover=document.createElement('div');cover.style.cssText='position:fixed;left:0;top:0;width:400px;height:70px;z-index:11;background:white';root.append(cover);eq(linkRect(entries[0].target),null);
 });
 const summary=document.createElement('h2');summary.id='summary';summary.textContent=`${passed} passed, ${failed} failed`;document.body.append(summary);
