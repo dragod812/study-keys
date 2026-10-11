@@ -19,9 +19,21 @@ export function keyOf(e) {
   if(e.metaKey||e.altKey||e.isComposing||['Dead','Process'].includes(e.key))return null;
   return e.ctrlKey?'Ctrl-'+e.key.toLowerCase():e.key===' '?'Space':e.key;
 }
+// Only local Markdown and HTML documents are supported on file://. Never fetch a path,
+// traverse directories, or interpret a local path as a library storage path.
+export function isLocalDocument(raw) {
+  try {
+    const u=new URL(raw),path=decodeURIComponent(u.pathname);
+    return u.protocol==='file:'&&!u.host&&!/%(?:2f|5c|00)/i.test(u.pathname)&&!/[\\\x00-\x1f]/.test(path)&&/\.(md|markdown|mdown|mkd|mkdn|html|htm)$/i.test(path);
+  }catch{return false;}
+}
+export function supportedPage(raw){try{pageKey(raw);return true;}catch{return false;}}
+export function pageScope(raw){const u=new URL(pageKey(raw));return u.protocol==='file:'?u.href:u.origin;}
+export function pageSource(raw){const u=new URL(raw);return u.protocol==='file:'?'Local '+(/\.html?$/i.test(decodeURIComponent(u.pathname))?'HTML':'Markdown')+' · '+decodeURIComponent(u.pathname):u.hostname;}
 export function pageKey(raw) {
   const u=new URL(raw);
-  if(!['http:','https:'].includes(u.protocol))throw Error('Only HTTP and HTTPS pages are supported.');
+  if(u.protocol==='file:'&&isLocalDocument(u.href)){u.search='';u.hash='';return u.href;}
+  if(!['http:','https:'].includes(u.protocol))throw Error('Only HTTP/HTTPS pages and local Markdown/HTML files are supported.');
   u.username='';u.password='';
   for(const key of [...u.searchParams.keys()])if(/^(utm_|fbclid$|gclid$|msclkid$)/i.test(key))u.searchParams.delete(key);
   u.searchParams.sort();

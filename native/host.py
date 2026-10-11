@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Study Keys local file store. Only the library root is addressable; no network or arbitrary command API."""
 import base64, contextlib, fcntl, hashlib, json, os, re, struct, sys, tempfile, time, subprocess
+import threading
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, unquote
 
 MAX_INPUT = 60 * 1024 * 1024
 
@@ -88,9 +89,17 @@ class Library:
 
     def folder(self, url):
         u = urlsplit(url)
-        if u.scheme not in ('http', 'https') or not u.hostname or u.username or u.password: raise ValueError('Invalid page URL.')
-        domain = re.sub(r'[^a-zA-Z0-9._-]', '-', u.netloc.lower())[:100]
-        name = re.sub(r'[^a-zA-Z0-9_-]', '-', u.path.strip('/') + ('-' + u.fragment if u.fragment else ''))
+        if u.scheme == 'file':
+            # The source URL is only an identity; never read or write the source file.
+            path = unquote(u.path, errors='strict')
+            if u.netloc or not u.path.startswith('/') or u.query or u.fragment or re.search(r'%(?:2f|5c|00)', u.path, re.I) or re.search(r'[\\\x00-\x1f]', path) or not re.search(r'\.(md|markdown|mdown|mkd|mkdn|html|htm)$', path, re.I):
+                raise ValueError('Invalid local document URL.')
+            domain = 'local-files'
+            name = re.sub(r'[^a-zA-Z0-9_-]', '-', path.rsplit('/', 1)[-1])
+        else:
+            if u.scheme not in ('http', 'https') or not u.hostname or u.username or u.password: raise ValueError('Invalid page URL.')
+            domain = re.sub(r'[^a-zA-Z0-9._-]', '-', u.netloc.lower())[:100]
+            name = re.sub(r'[^a-zA-Z0-9_-]', '-', u.path.strip('/') + ('-' + u.fragment if u.fragment else ''))
         name = re.sub('-+', '-', name).strip('-')[:75] or 'index'
         return self.path('pages', domain, name + '--' + hashlib.sha256(url.encode()).hexdigest()[:12])
 
@@ -99,7 +108,7 @@ class Library:
         if not isinstance(key, str) or ':' not in key: raise ValueError('Unknown storage key.')
         kind, value = key.split(':', 1)
         if kind in ('page', 'drawing', 'marks'): self.folder(value)
-        elif kind == 'recovery':
+        elif kind in ('recovery','agent-run'):
             if not re.fullmatch(r'[\w-]{1,80}', value, flags=re.ASCII): raise ValueError('Invalid recovery identifier.')
         else: raise ValueError('Unknown storage key.')
         return kind, value
@@ -109,6 +118,9 @@ class Library:
         for key, value in values.items():
             kind, ident = self.key(key)
             if not isinstance(value, dict): raise ValueError('Invalid record.')
+            if kind == 'agent-run':
+                self.folder(value.get('url',''))
+                if value.get('id') != ident or value.get('status') not in ('applied','undone') or not isinstance(value.get('requestHash'),str) or not isinstance(value.get('annotationChanges'),list) or not isinstance(value.get('drawingChanges'),list) or len(packed(value))>30*1024*1024: raise ValueError('Invalid study run.')
             if kind in ('page', 'drawing', 'recovery', 'marks'):
                 if not isinstance(value.get('title'), str) or len(value['title']) > 500: raise ValueError('Invalid page title.')
                 self.folder(value.get('url', ''))
@@ -151,6 +163,13 @@ class Library:
                 r = self.read(p); scene = self.read(p.with_suffix('.excalidraw'))
                 if scene is None: raise ValueError('A recovery drawing file is missing.')
                 result['recovery:' + r['id']] = {**r, 'url':url, 'title':title, 'scene':scene}
+        runs=folder/'agent-runs'
+        if runs.exists():
+            self.path(runs.relative_to(self.root))
+            for p in runs.glob('*.json'):
+                r=self.read(p)
+                if r.get('url')!=url or r.get('id')!=p.stem: raise ValueError('Study run identity mismatch.')
+                result['agent-run:'+r['id']]=r
         return result
 
     def get(self, key=None):
@@ -165,7 +184,7 @@ class Library:
             return result
         kind, ident = self.key(key)
         if kind in ('page', 'drawing', 'marks'): return {key:self.page_records(self.folder(ident)).get(key)}
-        if kind == 'recovery': return {key:self.get().get(key)}
+        if kind in ('recovery','agent-run'): return {key:self.get().get(key)}
         return {key:self.read(self.path({'settings':'settings.json','notebook-layout':'window.json','global-marks':'global-marks.json','navigation':'navigation/study.json'}[kind]))}
 
     def markdown(self, value):
@@ -179,6 +198,11 @@ class Library:
     def apply(self, values):
         for key, value in values.items():
             kind, ident = self.key(key)
+            if kind == 'agent-run':
+                folder=self.folder(value['url'])
+                if not self.read(folder/'page.json'): self.write(folder/'page.json',{'url':value['url'],'title':value.get('title','')})
+                self.write(folder/'agent-runs'/(ident+'.json'),value)
+                continue
             if kind in ('page','drawing','recovery','marks'):
                 folder = self.folder(value['url'])
                 if kind == 'page' or not self.read(folder / 'page.json'): self.write(folder / 'page.json', {'url':value['url'], 'title':value['title']})
@@ -211,7 +235,7 @@ class Library:
             if op == 'toggleVerticalTabs':
                 self.path('.integration', 'vertical-tabs-enabled')
                 return toggle_vertical_tabs(self.root)
-            if op == 'status': return {'folder':str(self.root),'format':'study-keys-folder','version':1}
+            if op == 'status': return {'folder':str(self.root),'format':'study-keys-folder','version':1,'companionVersion':'1.6.0','mcp':(self.root/'.integration/launch-mcp').is_file()}
             if op == 'get':
                 values = self.get(m.get('key')); return {'values':values,'versions':{k:digest(v) for k,v in values.items()}}
             if op == 'set':
@@ -227,15 +251,20 @@ class Library:
                 return {'migrated':len(missing),'folder':str(self.root)}
             raise ValueError('Unknown local-library operation.')
 
+OUTPUT_LOCK=threading.Lock()
 def send(value):
     payload=json.dumps(value,ensure_ascii=False,separators=(',',':')).encode('utf-8')
-    sys.stdout.buffer.write(struct.pack('@I',len(payload)));sys.stdout.buffer.write(payload);sys.stdout.buffer.flush()
+    with OUTPUT_LOCK:
+        sys.stdout.buffer.write(struct.pack('@I',len(payload)));sys.stdout.buffer.write(payload);sys.stdout.buffer.flush()
 
 def run(root):
     store=Library(root)
+    bridge=None
     while True:
         header=sys.stdin.buffer.read(4)
-        if not header: return
+        if not header:
+            if bridge: bridge.close()
+            return
         if len(header)!=4: return
         length=struct.unpack('@I',header)[0]
         if length>MAX_INPUT: return
@@ -243,7 +272,19 @@ def run(root):
         if len(data)!=length: return
         ident=None
         try:
-            m=json.loads(data);ident=m.get('id');value={'ok':True,'value':store.request(m)}
+            m=json.loads(data);ident=m.get('id')
+            if m.get('op')=='agentResult':
+                if bridge: bridge.result(m)
+                continue
+            if m.get('op')=='bridgeEnable':
+                from bridge import BrowserBridge
+                if bridge is None: bridge=BrowserBridge(store,send)
+                result={'connected':True,'protocol':1,'companionVersion':'1.6.0'}
+            elif m.get('op')=='bridgeDisable':
+                if bridge: bridge.close()
+                bridge=None;result={'connected':False}
+            else: result=store.request(m)
+            value={'ok':True,'value':result}
         except Exception as error:
             value={'ok':False,'error':str(error)}
         # Chrome limits each native-host response to 1 MiB. Stream larger scenes.

@@ -1,4 +1,4 @@
-# Study Keys local helper
+# Study Keys companion: local library + MCP
 
 This beta supports macOS and Linux with Google Chrome, Python 3.11+ and Git.
 The helper is required for saving highlights, notes, drawings and scroll marks.
@@ -27,3 +27,25 @@ Uninstalling the extension does not erase the folder or helper registration. To 
 Run the same install command with `--enable-vertical-tabs` to enable `Space s`. This adds one fixed UI action: click Chrome’s native “Expand Tabs” or “Collapse Tabs” button. Enable vertical tabs in Chrome first. macOS may require Accessibility and Automation access for Chrome. The helper never accepts an arbitrary script, command, app name, or UI target. It skips webpage content. Currently this requires the English Chrome button labels. Linux and Codex’s browser do not expose this native toggle through this integration.
 
 Remove `~/.study-keys/.integration/vertical-tabs-enabled` to turn this optional action off; ordinary folder saving keeps working.
+
+## Local Markdown support
+
+Version 1.5.2 supports local Markdown and HTML identities. Rerun this installer to update an older helper before saving on local documents. Enable Allow access to file URLs for Study Keys (and Markdown Viewer if used) in Chrome, then reload the document. Annotations and drawings go under `~/.study-keys/pages/local-files/`; the helper never reads or edits the source document.
+
+
+## One-time AI setup (1.6.0)
+
+The same ZIP now installs both folder saving and the MCP server. Python 3.11+ and Git are the only companion dependencies. No model key or extra generation service is needed.
+
+1. Select Codex (MCP + skill), Cursor, or Claude Desktop (macOS) on the extension setup page.
+2. Run the generated command, for example `python3 install.py --extension-id YOUR_EXTENSION_ID --client codex`. Repeat `--client` for more clients. With no `--client`, existing agent settings are untouched.
+3. Reload the extension and enable **Allow connected local AI agents** in setup.
+4. Reconnect/restart your agent client. In Codex, use `$study-keys https://example.com/article`. Other clients can ask `study keys -> https://example.com/article`, or use the `study_page` MCP prompt.
+
+Selecting `--client codex` also installs the bundled skill into `$CODEX_HOME/skills/study-keys`, or `~/.codex/skills/study-keys` by default. For a skill-only install/update, run `python3 install_skill.py` from this extracted folder. No npm packages or extension ID are needed for this command; the MCP and browser still need their normal setup. Use `--codex-home /path/to/codex-config` to select another configuration directory. Rerunning the installer preserves identical files, and backs up changed installations under `skill-backups/study-keys/` in the Codex directory before replacing them. The backup is kept outside skill discovery and its path is printed. The installer does not download updates; use a current companion ZIP first.
+
+The installer preserves unrelated settings and refuses to replace a different existing `study-keys` MCP entry. JSON client configurations get a local backup. Codex is registered using its CLI. Other clients can import `~/.study-keys/.integration/mcp-config.json`; its command launches the MCP server over stdio. The installer reports a missing client instead of claiming setup succeeded.
+
+Keep Chrome running with the extension enabled for live page and notebook tools. Basic MCP status works with Chrome closed. Agents use the same annotations and drawing.excalidraw as the UI. Exact quotes are verified, revisions protect concurrent edits, and stable request IDs prevent duplicate retries. Diagrams contain editable frames, shapes, text and arrows. The MCP reads visible/rendered top-document content; it reports collapsed native details sections and unsupported embedded frames/canvas text. It does not bypass website login or access restrictions.
+
+Turn AI access off in setup to stop the browser bridge. To remove Codex registration, run `codex mcp remove study-keys`; remove only the `study-keys` entry in other clients. Your reading library stays intact. Client configuration may expose requested content to that client's model provider. Study Keys itself has no network listener and no AI service call.

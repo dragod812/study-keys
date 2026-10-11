@@ -1,0 +1,9 @@
+interface:
+  display_name: "Study Keys"
+  short_description: "Highlight, annotate and learn in your page notebook"
+  default_prompt: "Use $study-keys to study this URL, add useful highlights and notes, and create learn-by-layers diagrams in its existing notebook."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "study-keys"
+      description: "Local Study Keys companion for page reading, annotations and the existing Excalidraw notebook"

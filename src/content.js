@@ -1,4 +1,4 @@
-import {COLORS,hintCodes,keyOf,pageKey,makeAnchor,resolveAnchor,score,highlightSegments} from './core.js';
+import {COLORS,hintCodes,keyOf,pageKey,supportedPage,makeAnchor,resolveAnchor,score,highlightSegments} from './core.js';
 import {buildIndex,fromSelection,wordTokens,visibleRect,owned,available,scrollPane,label,targets,pageDialog} from './dom.js';
 import {paragraphSpans,visibleScopes,expandScope,selectionText} from './selection-scopes.js';
 import {spanRebaser,wordCodePool} from './selection-dom.js';
@@ -13,12 +13,14 @@ import {createPageLoader} from './page-loader.js';
 import {createNavigationUI} from './navigation-ui.js';
 import {capture,passages,restoreReading} from './navigation-dom.js';
 import {rankEntries} from './navigation-core.js';
+import {readAgentPage,agentSelection,revealAgentSection} from './agent-dom.js';
+import {shortcutHints} from './shortcut-hints.js';
 
 // The isolated content-script world owns the state. No page globals, eval,
 // network requests, HTML injection or changes to the site's text nodes.
 let keyHandler=null,uiOwner=null,uiKeyHandler=null;
 const releaseKeys=keyboardBoundary(window,{onKey:e=>keyHandler?.(e),ownsUI:e=>!!uiOwner?.(e),onUIKey:e=>uiKeyHandler?.(e)});
-function ready(){if(document.querySelector(typeof STUDY_KEYS_PREVIEW!=='undefined'&&STUDY_KEYS_PREVIEW?'[data-study-keys-preview]':'[data-study-keys]')){releaseKeys();return;}start();}
+function ready(){if(!supportedPage(location.href)){releaseKeys();return;}if(document.querySelector(typeof STUDY_KEYS_PREVIEW!=='undefined'&&STUDY_KEYS_PREVIEW?'[data-study-keys-preview]':'[data-study-keys]')){releaseKeys();return;}start();}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ready,{once:true});else ready();
 function start() {
   const host=document.createElement('div');host.dataset.studyKeys='';if(typeof STUDY_KEYS_PREVIEW!=='undefined'&&STUDY_KEYS_PREVIEW)host.dataset.studyKeysPreview='';
@@ -27,7 +29,7 @@ function start() {
   const surface=document.createElement('div');surface.className='surface';shadow.append(style,surface);document.documentElement.append(host);
   function el(tag,text,cls){const n=document.createElement(tag);if(text!=null)n.textContent=text;if(cls)n.className=cls;return n;}
   function button(text,run,cls){const n=el('button',text,cls);n.type='button';n.onclick=run;return n;}
-  const badge=button('Study Keys · v select · ? help',()=>disconnected?reconnect():help(),'badge'),toast=el('div',null,'toast'),layer=el('div'),which=el('div',null,'which');
+  const badge=button('Normal · ?',()=>disconnected?reconnect():help(),'badge'),toast=el('div',null,'toast'),layer=el('div'),which=el('div',null,'which');
   badge.setAttribute('aria-label','Study Keys keyboard help');toast.setAttribute('role','status');toast.setAttribute('aria-live','polite');toast.hidden=which.hidden=true;surface.append(badge,toast,layer,which);
   let url=pageKey(location.href),items=[],enabled=true,insert=false,disconnected=false,index=null,resolved=new Map();
   let dialog=null,dialogKey=null,previousFocus=null,closeGuard=null,mode=null,bar=null,labels=[],prefix='',startWord=null,pending=null;
@@ -43,7 +45,13 @@ function start() {
   const attempt=fn=>Promise.resolve().then(fn).catch(e=>say(e.message));
   const notebook=notebookWindow({surface,getPage:()=>({url,title:document.title}),say,clearMode});
   function openNotebook(){if(closeDialog())notebook.open();}
-  function updateBadge(){const modeLabel=insert?'INSERT':markMode?'MARK':mode==='visual'?'VISUAL':mode==='highlight'?'HIGHLIGHT':['start','end','blocks'].includes(mode)?selectionMode.toUpperCase():'NORMAL';badge.dataset.mode=disconnected?'disconnected':modeLabel.toLowerCase();badge.textContent=disconnected?'Study Keys updated · Reload to reconnect':enabled?`Study Keys · ${modeLabel} · ${items.filter(i=>!i.archived).length} saved`:'Study Keys · keys off';badge.setAttribute('aria-label',disconnected?'Study Keys updated · Reload to reconnect':'Study Keys keyboard help');if(drawer)renderDrawer();}
+  function updateBadge(){
+    const modeLabel=insert?'Insert':markMode?'Mark':mode==='visual'?'Visual':mode==='highlight'?'Highlight':['start','end','blocks'].includes(mode)?selectionMode[0].toUpperCase()+selectionMode.slice(1):'Normal';
+    badge.dataset.mode=disconnected?'disconnected':enabled?modeLabel.toLowerCase():'off';
+    badge.textContent=disconnected?'Reconnect':enabled?modeLabel+' · ?':'Keys off · ?';
+    badge.title=disconnected?'Study Keys updated · Reload to reconnect':`Study Keys · ${enabled?modeLabel+' mode':'Shortcuts off'} · ${items.filter(i=>!i.archived).length} saved · Keyboard help`;
+    badge.setAttribute('aria-label',badge.title);if(drawer)renderDrawer();
+  }
   function reconnect(){
     const d=openDialog('Reconnect Study Keys');if(!d)return;
     d.append(el('p','Study Keys was updated while this tab was open. Reload this page to reconnect. Your saved highlights, notes and drawings remain in your local library.'),el('p','Finish or copy any unsaved website edits before reloading.'),button('Reload this page',()=>location.reload()));
@@ -344,8 +352,9 @@ function start() {
     labels=active;renderCopyLabels();
     // Keep the nonmodal status out of the way of bottom-of-page links when
     // there is more room above. Label hit tests pass through this status bar.
+    bar.classList.remove('copy-bar-top');
     const box=bar.getBoundingClientRect(),hits=top=>active.filter(({rect:r})=>r.right>box.left&&r.left<box.right&&r.bottom>top&&r.top<top+box.height).length;
-    bar.classList.toggle('copy-bar-top',hits(12)<hits(innerHeight-58-box.height));
+    bar.classList.toggle('copy-bar-top',hits(12)<hits(box.top));
   }
   function renderCopyLabels(){
     const session=copySession;if(!session)return;
@@ -424,7 +433,7 @@ function start() {
     clearMode();drawer=el('aside',null,'drawer');drawer.tabIndex=-1;drawer.setAttribute('aria-label','This page’s highlights and notes');
     const header=el('div',null,'row');header.append(el('h2','In the margins','grow'),button('×',closeDrawer));header.lastChild.setAttribute('aria-label','Close page sidebar');
     const input=el('input');input.type='search';input.placeholder='Search this page’s notes…';input.setAttribute('aria-label','Search page annotations');input.value=drawerSearch;input.oninput=()=>{drawerSearch=input.value;renderDrawer();};
-    const actions=el('div',null,'row');actions.append(button('+ Page note',()=>edit()),button('Drawing notebook',openNotebook),button('All websites ↗',()=>attempt(()=>request({type:'openLibrary'}))));
+    const actions=el('div',null,'row');actions.append(button('+ Page note',()=>edit()),button('Drawing notebook',openNotebook),button('All pages ↗',()=>attempt(()=>request({type:'openLibrary'}))));
     const list=el('div',null,'drawer-list');list.setAttribute('aria-live','polite');drawer.append(el('p','STUDY KEYS / THIS PAGE','eyebrow'),header,el('p','[ h / ] h jump between passages · Esc closes','muted'),input,actions,list);surface.append(drawer);renderDrawer();drawer.focus();
   }
   function showAnnotation(item){
@@ -449,23 +458,25 @@ function start() {
   function nextAnnotation(delta){const live=items.filter(i=>!i.archived&&resolved.has(i.id)).sort((a,b)=>a.anchor.start-b.anchor.start);if(!live.length)return say('No restored highlights on this page yet.');annotationAt=(annotationAt+delta+live.length)%live.length;showAnnotation(live[annotationAt]);say(`Highlight ${annotationAt+1} of ${live.length}`);}
   function openAddress(newTab=false){
     const box=openDialog(newTab?'Open a URL in a new tab':'Open a URL');if(!box)return;
-    const input=el('input');input.type='search';input.placeholder='https://example.com';input.setAttribute('aria-label','Website URL');const error=el('p',null,'error');
-    const go=button('Open',async()=>{try{const target=/^https?:\/\//i.test(input.value)?input.value:'https://'+input.value;await request({type:'navigate',action:'open',target,newTab});closeDialog(true);}catch(e){error.textContent=e.message;}},'primary');box.append(input,error,go);input.onkeydown=e=>{if(e.key==='Enter'){consume(e);go.click();}};input.focus();
+    const input=el('input');input.type='search';input.placeholder='https://example.com or file:///…/notes.md';input.setAttribute('aria-label','Website or local document URL');const error=el('p',null,'error');
+    const go=button('Open',async()=>{try{const target=/^(?:https?|file):\/\//i.test(input.value)?input.value:'https://'+input.value;await request({type:'navigate',action:'open',target,newTab});closeDialog(true);}catch(e){error.textContent=e.message;}},'primary');box.append(input,error,go);input.onkeydown=e=>{if(e.key==='Enter'){consume(e);go.click();}};input.focus();
   }
   function help(){
-    const box=openDialog('A quieter way to read');if(!box)return;
-    box.append(el('p','v then Space offers paragraphs, sections and the whole page. Paragraphs use start and end labels; choose the same label twice for one paragraph. After choosing a passage, p expands to paragraphs, s to its enclosing heading section, and a selects the page. y copies with paragraph breaks. NORMAL: navigate. v → labels → VISUAL: h highlights, y copies, n adds a note. Shift+V → labels → HIGHLIGHT: 1–6 saves a color. Esc steps back. ma / '+"'a"+' set / jump to a page mark; mA / '+"'A"+' work across tabs. d labels visible links to copy one URL; Shift+D keeps labels active and builds a clipboard list, one URL per line. Everything stays on this device.','muted'));
-    const setting=el('label'),check=el('input');check.type='checkbox';check.checked=enabled;check.onchange=async()=>{try{await request({type:'enabled',url,enabled:check.checked});enabled=check.checked;insert=false;updateBadge();}catch(e){check.checked=enabled;say(e.message);}};setting.append(check,document.createTextNode(' Enable letter shortcuts on '+location.hostname));
+    const box=openDialog('Keyboard shortcuts');if(!box)return;box.classList.add('help-dialog');
+    box.append(el('p','v → choose start + end labels → y copy, h highlight, n note. Space shows available shortcuts.','muted'));
+    const tips=el('details',null,'help-tips');tips.append(el('summary','Selection, modes & marks'),el('p','v then Space offers paragraphs, sections and the whole page. Paragraphs use start and end labels; choose the same label twice for one paragraph. After choosing a passage, p expands to paragraphs, s to its enclosing heading section, and a selects the page. y copies with paragraph breaks. NORMAL: navigate. v → labels → VISUAL: h highlights, y copies, n adds a note. Shift+V → labels → HIGHLIGHT: 1–6 saves a color. Esc steps back. ma / '+"'a"+' set / jump to a page mark; mA / '+"'A"+' work across tabs. d labels visible links to copy one URL; Shift+D keeps labels active and builds a clipboard list, one URL per line. Everything stays on this device.','muted'));
+    const setting=el('label'),check=el('input');check.type='checkbox';check.checked=enabled;check.onchange=async()=>{try{await request({type:'enabled',url,enabled:check.checked});enabled=check.checked;insert=false;updateBadge();}catch(e){check.checked=enabled;say(e.message);}};setting.append(check,document.createTextNode(' Enable letter shortcuts on '+(location.protocol==='file:'?'this local file':location.hostname)));
     const filter=el('input');filter.type='search';filter.placeholder='Filter keyboard shortcuts…';filter.setAttribute('aria-label','Filter keyboard shortcuts');
     const grid=el('div',null,'keymap');for(const c of commands){const row=el('div');row.append(el('kbd',c.keys.join(' ')),el('span',c.label));grid.append(row);}
     filter.oninput=()=>{for(const row of grid.children)row.hidden=!row.textContent.toLowerCase().includes(filter.value.toLowerCase());};
-    box.append(setting,filter,grid,el('p','Inputs, editors, browser shortcuts and IME keep their own keys. i passes all keys through, including Escape; Ctrl+C returns to Normal mode. Use the toolbar icon for the library, backups and restore.','muted'),button('Drawing notebook · Space d n',()=>{closeDialog(true);openNotebook();}),button('Open local library',()=>attempt(()=>request({type:'openLibrary'}))));
+    const actions=el('div',null,'row');actions.append(button('Drawing notebook',()=>{closeDialog(true);openNotebook();}),button('Local library',()=>attempt(()=>request({type:'openLibrary'}))));
+    box.append(setting,filter,grid,tips,el('p','i passes every key to the website. Ctrl+C returns to Normal. Esc closes other modes.','muted'),actions);
   }
   function beginMark(action){clearMode();markMode=action;makeBar(action==='set'?'SET MARK · choose a letter':'JUMP TO MARK · choose a letter','a–z: this page · A–Z: global, across tabs · Esc cancels');updateBadge();}
   function setMark(name){attempt(async()=>{const position=capturePosition(hover||document.activeElement);await request({type:'setMark',url,title:document.title,name,position});say((/^[A-Z]$/.test(name)?'Global':'Page')+' mark '+name+' saved · press '+"'"+name+' to return');});}
   function jumpMark(name){attempt(()=>navigation.track(async()=>{const result=await request({type:'gotoMark',url,name});if(result.mark){lastPane=await restorePosition(result.mark);hover=lastPane;say('Page mark '+name+' · position restored');}}));}
   function markPicker(){attempt(async()=>{const data=await request({type:'marks',url});const entries=[...Object.entries(data.local).map(([name,mark])=>({name,mark,scope:'This page'})),...Object.entries(data.global).map(([name,mark])=>({name,mark,scope:'Global'}))];if(!entries.length)return say('No marks yet. Use ma for this page or mA for a global mark.');openPicker('Jump to a saved mark',entries.map(({name,mark,scope})=>({label:name+' · '+mark.title,detail:scope+' · '+mark.url,run:()=>jumpMark(name)})));});}
-  const navigation=createNavigationUI({request,openPicker,openDialog,closeDialog,el,button,say,paint,consume,attempt,setDialogKey:fn=>dialogKey=fn,seed:()=>hover||document.activeElement});
+  const navigation=createNavigationUI({request,openPicker,openDialog,closeDialog,el,button,say,paint,consume,attempt,setDialogKey:fn=>dialogKey=fn,seed:()=>hover||document.activeElement,readingBounds:()=>({bottom:bar?bar.getBoundingClientRect().top-12:innerHeight})});
   const commands=[
     ...navigation.commands,
     {keys:['v'],label:'Visual mode · choose a passage with labels',run:()=>beginWords()},
@@ -474,7 +485,7 @@ function start() {
     {keys:['m'],label:'Set a scroll mark · a–z local, A–Z global',run:()=>beginMark('set')},
     {keys:["'"],label:'Jump to a mark · a–z local, A–Z across tabs',run:()=>beginMark('jump')},
     {keys:['`'],label:'Jump to a saved scroll position',run:()=>beginMark('jump')},
-    {keys:['Space','m'],label:'Search local and global marks',run:markPicker},
+    {keys:['Space','m'],label:'Search local and global marks',hint:'Saved marks',run:markPicker},
     {keys:['s'],label:'Search links and controls',run:jump},
     {keys:['d'],label:'Copy a link · type its visible label',run:()=>copyLinks()},
     {keys:['D'],label:'Copy labeled links · one URL per line',run:()=>copyLinks(true)},
@@ -496,14 +507,14 @@ function start() {
     ...[['j',0,.14],['k',0,-.14],['h',-80,0],['l',80,0],['Ctrl-d',0,.5],['Ctrl-u',0,-.5]].map(([key,x,y])=>({keys:[key],label:{j:'Scroll down',k:'Scroll up',h:'Scroll left',l:'Scroll right','Ctrl-d':'Half page down','Ctrl-u':'Half page up'}[key],repeat:true,run:(count=1)=>move(x*count,y*count)})),
     {keys:['g','g'],label:'Top of page or pane',run:()=>move(0,0,'start')},
     {keys:['G'],label:'Bottom of page or pane',run:()=>move(0,0,'end')},
-    {keys:['Space','d','n'],label:'Open this page’s floating drawing notebook',run:openNotebook},
+    {keys:['Space','d','n'],label:'Open this page’s floating drawing notebook',hint:'Drawing notebook',run:openNotebook},
     {keys:['Space','d','o'],label:'Page outline',run:outline},
-    {keys:['Space','d','s'],label:'Fuzzy search passages in this document',run:navigation.documentSearch},
-    {keys:['Space','h'],label:'Open this page’s annotation sidebar',run:pageSidebar},
+    {keys:['Space','d','s'],label:'Fuzzy search passages in this document',hint:'Search document',run:navigation.documentSearch},
+    {keys:['Space','h'],label:'Open this page’s annotation sidebar',hint:'Highlights & notes',run:pageSidebar},
     {keys:[']','h'],label:'Next highlight',run:()=>nextAnnotation(1)},
     {keys:['[','h'],label:'Previous highlight',run:()=>nextAnnotation(-1)},
-    {keys:['Space','n'],label:'Add a page note',run:()=>edit()},
-    {keys:['Space','p','f'],label:'Search saved highlights and notes',run:()=>attempt(()=>navigation.library())},
+    {keys:['Space','n'],label:'Add a page note',hint:'Page note',run:()=>edit()},
+    {keys:['Space','p','f'],label:'Search saved highlights and notes',hint:'Highlights & notes',run:()=>attempt(()=>navigation.library())},
     {keys:['Space','p','l'],label:'Resume the last search',run:()=>lastPicker?openPicker(lastPicker.title,lastPicker.entries,lastPicker.query,true,lastPicker.options):jump()},
     {keys:['?'],label:'Keyboard guide and site setting',run:help},
     {keys:['i'],label:'Insert mode · pass keys through until Ctrl+C',run:()=>{clearMode();closeDrawer();insert=true;updateBadge();say('Insert mode · all keys go to the website · Ctrl+C returns to Normal');}},
@@ -537,7 +548,7 @@ function start() {
     // Native/site dialogs own keys; they remain operable via ordinary Tab.
     if(pageDialog())return;
     if(selecting()&&k!=='Escape'&&!refreshSelection(true)){consume(e);return;}
-    if(k==='Escape'){normalCount='';navigation.clearFind();if(mode||markMode||sequence.length){consume(e);if(mode||markMode)cancel();else{resetSequence();updateBadge();}}else{clearPreview();getSelection()?.removeAllRanges();}return;}
+    if(k==='Escape'){normalCount='';navigation.clearFind();if(mode||markMode||sequence.length){consume(e);if(sequence.length){resetSequence();updateBadge();}else if(mode||markMode)cancel();}else{clearPreview();getSelection()?.removeAllRanges();}return;}
     if(markMode){consume(e);if(/^[a-zA-Z]$/.test(k)&&!e.repeat){const action=markMode;clearMode();if(action==='set')setMark(k);else jumpMark(k);}return;}
     if(scopeMenu){consume(e);const choice=scopeChoices.find(c=>c.key===k);if(choice){scopeMenu=false;choice.run();}return;}
     if(selecting()&&k==='Space'){consume(e);openScopeMenu();return;}
@@ -546,7 +557,7 @@ function start() {
       if(['ArrowDown','ArrowUp','PageDown','PageUp','Ctrl-d','Ctrl-u'].includes(k)&&mode!=='links'){consume(e);move(0,['ArrowUp','PageUp','Ctrl-u'].includes(k)?-.5:.5);return;}
       if(k==='Backspace'||/^[a-z]$/i.test(k)){consume(e);if(!e.repeat)typeLabel(k);}return;
     }
-    if(['visual','highlight'].includes(mode)||getSelection()?.toString()){
+    if(sequence[0]!=='z'&&(['visual','highlight'].includes(mode)||getSelection()?.toString())){
       if(/^[1-6]$/.test(k)){consume(e);saveColor(COLORS[+k-1].id);return;}
       if(['visual','highlight'].includes(mode)&&['p','s','a'].includes(k)){consume(e);if(k==='a')selectPage(selectionMode);else expandSelection(k==='p'?'paragraph':'section');return;}
       if(pending?.kind==='paragraph'&&['j','k','J','K'].includes(k)){consume(e);stepParagraph(k);return;}
@@ -555,15 +566,19 @@ function start() {
       if(k==='n'){consume(e);if(!pending)pending=selectedIndex();if(pending&&canAnnotate())edit(newItem(pending.anchor));return;}
       if(['visual','highlight'].includes(mode)&&k==='e'){consume(e);const selected=pending;const start=wordTokens(index.text).find(t=>t.start===selected.start);beginWords(start,mode);return;}
       if(['visual','highlight'].includes(mode)&&k==='o'){consume(e);beginWords(null,mode);return;}
-      if(!['v','V'].includes(k)&&!(k==='i'&&!mode))return;
+      if(!['v','V','z'].includes(k)&&!(k==='i'&&!mode))return;
     }
     if(!sequence.length&&!mode&&/^[0-9]$/.test(k)&&(normalCount||k!=='0')){consume(e);normalCount=(normalCount+k).slice(0,2);say('Count '+normalCount);return;}
     const next=[...sequence,k],matching=commands.filter(c=>next.every((x,i)=>c.keys[i]===x));
     if(!matching.length){normalCount='';if(sequence.length){consume(e);resetSequence();say('No command for that sequence. Space shows the menu.');}return;}
     const exact=matching.find(c=>c.keys.length===next.length);consume(e);if(e.repeat&&!exact?.repeat)return;
     if(exact){const count=Number(normalCount)||1;normalCount='';resetSequence();exact.run(count);}else{
-      sequence=next;which.replaceChildren(el('strong',sequence.join(' ')+' …'));const choices=new Map();for(const c of matching){const rest=c.keys.slice(sequence.length);choices.set(rest[0],rest.length===1?c.label:rest[0]==='d'?'Document →':rest[0]==='v'?'Select text →':rest[0]==='g'?'Tab groups →':rest[0]==='e'?'Quick spots →':rest[0]==='w'?'Study workspaces →':'Library & search →');}
-      for(const [key,name]of choices){const row=el('div');row.append(el('kbd',key),el('span',name));which.append(row);}which.hidden=false;clearTimeout(sequenceTimer);sequenceTimer=setTimeout(resetSequence,5000);
+      sequence=next;const header=el('div',null,'which-header'),list=el('div',null,'which-list'),choices=shortcutHints(matching,sequence);
+      header.append(el('strong',sequence.join(' ')+' …'),el('span','Esc to cancel'));
+      which.replaceChildren(header,list);which.dataset.columns=choices.length>6?'2':'1';
+      which.setAttribute('role','region');which.setAttribute('aria-label','Available keyboard shortcuts');
+      for(const {key,label,detail}of choices){const row=el('div');row.title=detail;row.append(el('kbd',key),el('span',label));list.append(row);}
+      which.hidden=false;clearTimeout(sequenceTimer);sequenceTimer=setTimeout(resetSequence,5000);
     }
   }
   keyHandler=onKey;
@@ -600,6 +615,18 @@ function start() {
   watch(()=>{if(connected()&&!dialog&&!mode)load();});
   if(typeof chrome!=='undefined'&&chrome.runtime?.onMessage)chrome.runtime.onMessage.addListener((message,sender,respond)=>{
     if(sender.id!==chrome.runtime.id)return;
+    if(message?.type==='agentPage'){
+      (async()=>{
+        if(pageKey(location.href)!==message.url)throw Error('Requested page navigated. Read its new URL before editing.');
+        if(message.action==='read')return readAgentPage();
+        if(message.action==='selection')return agentSelection();
+        if(message.action==='reveal')return revealAgentSection(message.sectionId);
+        if(message.action==='refresh'){await load();return {restored:[...resolved.keys()]};}
+        if(message.action==='notebookState')return notebook.state();
+        if(message.action==='openNotebook'){await notebook.open();return {opened:true};}
+        throw Error('Unsupported agent page action.');
+      })().then(value=>respond({ok:true,value}),error=>respond({ok:false,error:error.message}));return true;
+    }
     if(message?.type==='restoreMark'){if(message.url!==url){respond({restored:false});return;}clearMode();restorePosition(message.mark).then(p=>{lastPane=p;hover=p;say('Global mark '+message.name+' · '+message.mark.title);respond({restored:true});},()=>respond({restored:false}));return true;}
     if(message?.type==='openNotebook'){openNotebook();respond({opened:true});}
     if(message?.type==='studyNavigation'){

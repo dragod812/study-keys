@@ -1,7 +1,8 @@
-import {pageKey,cleanItem,validateBackup,normalizePageColors} from './core.js';
+import {pageKey,pageScope,cleanItem,validateBackup,normalizePageColors} from './core.js';
 import {cleanStudyState} from './navigation-core.js';
 import {cleanMark,cleanPosition} from './marks.js';
 import {cleanScene,cleanDrawing,cleanLayout} from './notebook-core.js';
+import {hash,canonical,prepareStudy,undoStudy,validId} from './agent-core.js';
 
 // A single serialized service-worker queue prevents read/modify/write races
 // between tabs. A timestamp check protects two editors of the same annotation.
@@ -11,6 +12,24 @@ export function createRepository(storage,now=()=>Date.now()) {
   const get=async k=>(await storage.get(k))[k];
   const page=async url=>normalizePageColors((await get('page:'+url))||{url,title:'',items:[]});
   async function handle(m) {
+    if(['agentRead','agentApply','agentUndo','agentRun'].includes(m.type)) {
+      const url=pageKey(m.url),data=await storage.get(null);
+      const p=normalizePageColors(data['page:'+url]||{url,title:'',items:[]}),drawing=data['drawing:'+url]||null;
+      if(m.type==='agentRead')return {page:p,pageRevision:await hash(p),drawing,drawingRevision:drawing?.revision||null};
+      if(!validId(m.requestId))throw Error('Invalid requestId.');
+      const key='agent-run:'+m.requestId,prior=data[key];
+      if(prior&&prior.url!==url)throw Error('This requestId belongs to another page.');
+      if(m.type==='agentRun'){if(!prior)throw Error('Study run not found.');return prior;}
+      if(m.type==='agentApply'&&prior){if(prior.requestHash!==await hash(m.request))throw Error('requestId already used with different changes.');return {run:prior,replayed:true};}
+      if(m.type==='agentUndo'&&!prior)throw Error('Study run not found.');
+      const result=m.type==='agentApply'?await prepareStudy({page:p,drawing,source:m.source,request:m.request,stamp:now()}):undoStudy(p,drawing,prior,now());
+      const values={['page:'+url]:result.page,[key]:result.run};
+      if(result.drawing&&(m.type==='agentUndo'||result.changesDrawing))values['drawing:'+url]=result.drawing;
+      await storage.set(values);
+      // Read back from disk before acknowledging a committed batch.
+      const committed=await get(key);if(committed?.requestHash!==result.run.requestHash||committed?.status!==result.run.status)throw Error('Could not verify the study run on disk. Retry with the same requestId.');
+      return {run:committed,pageRevision:await hash(result.page),drawingRevision:result.drawing?.revision||null};
+    }
     if(m.type==='marks') {const url=pageKey(m.url);return {local:(await get('marks:'+url))?.marks||{},global:(await get('global-marks'))||{}};}
     if(m.type==='setMark') {
       if(!/^[a-zA-Z]$/.test(m.name))throw Error('Choose a–z for this page or A–Z for a global mark.');
@@ -32,13 +51,14 @@ export function createRepository(storage,now=()=>Date.now()) {
         await storage.set({['recovery:'+id]:{id,url,title:String(m.title||'').slice(0,500),scene,revision:String(m.base||''),updatedAt:now()}});
         throw Error('This notebook changed in another tab. Your draft is kept locally as a recovery copy. Export it, then reopen the saved version.');
       }
+      if(old&&canonical(old.scene)===canonical(scene))return {revision:old.revision,updatedAt:old.updatedAt};
       const drawing={url,title:String(m.title||old?.title||'').slice(0,500),scene,revision:crypto.randomUUID(),updatedAt:Math.max(now(),(old?.updatedAt||0)+1)};
       await storage.set({['drawing:'+url]:drawing});return {revision:drawing.revision,updatedAt:drawing.updatedAt};
     }
     if(m.type==='page') {
       const url=pageKey(m.url),settings=(await get('settings'))||{};
       const drawing=await get('drawing:'+url);
-      return {...await page(url),drawing:drawing?{updatedAt:drawing.updatedAt}:null,enabled:settings[new URL(url).origin]!==false};
+      return {...await page(url),drawing:drawing?{updatedAt:drawing.updatedAt}:null,enabled:settings[pageScope(url)]!==false};
     }
     if(m.type==='save') {
       const url=pageKey(m.url),p=await page(url),item=cleanItem(m.item),old=p.items.find(i=>i.id===item.id);
@@ -48,18 +68,21 @@ export function createRepository(storage,now=()=>Date.now()) {
       await storage.set({['page:'+url]:p});return item;
     }
     if(m.type==='enabled') {
-      const origin=new URL(pageKey(m.url)).origin,settings=(await get('settings'))||{};
+      const origin=pageScope(m.url),settings=(await get('settings'))||{};
       settings[origin]=!!m.enabled;await storage.set({settings});return {enabled:!!m.enabled};
     }
     if(m.type==='library'||m.type==='export') {
       const data=await storage.get(null),pages=Object.entries(data).filter(([k])=>k.startsWith('page:')).map(([,v])=>normalizePageColors(v));
       const drawings=Object.entries(data).filter(([k])=>k.startsWith('drawing:')).map(([,v])=>v),recoveries=Object.entries(data).filter(([k])=>k.startsWith('recovery:')).map(([,v])=>v);
       const marks=Object.entries(data).filter(([k])=>k.startsWith('marks:')).map(([,v])=>v),globalMarks=data['global-marks']||{};
-      return {format:'study-keys',version:3,navigation:cleanStudyState(data.navigation||{}),marks,globalMarks,exportedAt:new Date(now()).toISOString(),pages,drawings:m.type==='library'?drawings.map(({scene,...rest})=>rest):drawings,recoveries:m.type==='library'?[]:recoveries};
+      return {format:'study-keys',version:3,agentRuns:m.type==='library'?[]:Object.entries(data).filter(([k])=>k.startsWith('agent-run:')).map(([,v])=>v),navigation:cleanStudyState(data.navigation||{}),marks,globalMarks,exportedAt:new Date(now()).toISOString(),pages,drawings:m.type==='library'?drawings.map(({scene,...rest})=>rest):drawings,recoveries:m.type==='library'?[]:recoveries};
     }
     if(m.type==='import') {
       const navigation=m.backup.navigation?cleanStudyState(m.backup.navigation):null;
       const pages=validateBackup(m.backup);let imported=0,importedDrawings=0;const updates={};
+      const runs=m.backup.agentRuns||[];
+      if(!Array.isArray(runs)||runs.length>10000)throw Error('Invalid study runs in backup.');
+      for(const r of runs){if(!validId(r.id)||typeof r.title!=='string'||typeof r.requestHash!=='string'||!['applied','undone'].includes(r.status)||!Array.isArray(r.annotationChanges)||!Array.isArray(r.drawingChanges))throw Error('Invalid study run.');pageKey(r.url);for(const c of r.annotationChanges){cleanItem(c.after);if(c.before.updatedAt!==undefined)cleanItem(c.before);}for(const c of r.drawingChanges)cleanScene({type:'excalidraw',elements:[c.after,...(c.before.type?[c.before]:[])]});const key='agent-run:'+r.id;if(!await get(key))updates[key]=r;}
       const drawingList=m.backup.version>=2?m.backup.drawings:[],recoveryList=m.backup.version>=2?m.backup.recoveries:[];
       if(!Array.isArray(drawingList)||!Array.isArray(recoveryList)||drawingList.length+recoveryList.length>10000)throw Error('Invalid notebook backup.');
       const marks=m.backup.version>=3?m.backup.marks:[],globalMarks=m.backup.version>=3?m.backup.globalMarks:{};

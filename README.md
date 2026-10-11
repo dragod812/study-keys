@@ -111,13 +111,15 @@ New in the 1.5 navigation build:
 | `Space p j` | Search the session jumplist |
 | `]]` / `[[` | Next / previous article heading |
 | `3]]`, `5j`, `2Ctrl-o` | Counts in Normal mode; 1–6 still choose colors in Visual/Highlight mode |
-| `zz` | Center the active passage |
+| `zt` / `zz` / `zb` | Align the active section or selected passage at the top / center / bottom of its scroll area |
 | `Space g g / n / m / u / f` | Find groups / create / move selected browser tabs / ungroup / focus current group or restore |
 | `Space e a / e` | Save a quick spot / choose or remove a saved spot |
 | `Space 1…9` | Go to a quick spot |
 | `Space j / k` | Next / previous result from a pinned search |
 | `Space w s / o` | Save this window as a workspace / restore a workspace |
 | `Space p q` | Search unresolved red Question annotations |
+
+After choosing a heading with `]]` / `[[` or the outline, use `zt`, `zz`, or `zb` to place it at the top, center, or bottom. These also work on a selected passage in Visual or Highlight mode without dropping the selection. They move only that passage’s scroll area, respect the site’s scroll padding, and keep text above the selection toolbar. At the beginning or end of a document, alignment stops at the available scroll boundary.
 
 Use Chrome’s native multi-selection before grouping to act on multiple tabs. Group focus collapses other groups and scopes tab search; invoking it again restores the previous collapsed state. Workspaces reuse matching open URLs and restore positions as pages load. They do not close existing tabs. Notes and drawings remain keyed to their original page URLs. Quick spots and workspaces persist in `~/.study-keys/navigation/study.json` and are included in JSON backups. Opening the question’s annotation editor lets you mark it resolved without deleting the note.
 
@@ -128,6 +130,16 @@ Search results and the 100-entry reading jumplist are session-only. Cross-tab se
 On media websites, Normal-mode commands such as **Space**, **v → Space**, and **f** belong to Study Keys for the entire key press, including release. They do not also trigger the page’s playback or fullscreen shortcuts. To use website shortcuts, press **i** for Insert mode; **Ctrl+C** returns to Normal. Focused native media controls and website editors keep their own keys. **Reload existing tabs after updating** so the early keyboard handler is installed before site listeners.
 
 `Space` shows an immediate command menu. Normal Tab navigation remains available. Inputs, editable regions, editor widgets, media controls, IME and Cmd/Alt shortcuts keep their native behavior. Inside a site-owned modal, Study Keys yields to the site.
+
+The mode pill and shortcut menus stay in the lower-right corner. Longer menus use two compact columns; quick spots share a `1–9` hint. Selection controls and notifications are smaller, and `?` opens a searchable corner guide with the full shortcut descriptions. Hover over the mode pill for saved counts and help.
+
+## Local Markdown and HTML files
+
+Local HTML pages (`.html` and `.htm`) and Markdown documents rendered by [Markdown Viewer](https://github.com/simov/markdown-viewer) work with the same word/paragraph labels, search, highlights, notes, Excalidraw notebooks, marks, quick spots and workspaces. Markdown suffixes are `.md`, `.markdown`, `.mdown`, `.mkd` and `.mkdn` (case insensitive).
+
+Update both Study Keys and its local helper. In **chrome://extensions → Study Keys → Details**, enable **Allow access to file URLs**, then reload the document tab. HTML pages open directly in Chrome. Markdown Viewer needs its own file-access setting enabled. The Study Keys setup page reports whether file access is enabled and links to the details screen.
+
+The extension reads only the already-open document. It does not crawl folders or fetch source files. Notes and drawings save in **`~/.study-keys/pages/local-files/<filename>--<URL-hash>/`**; the helper never edits the original source file. Headings and viewer cache queries share the same file identity; different paths (even identical filenames) remain separate. Moving or renaming a source file creates a new identity. Shortcut enablement is per local file. Use `site:local` to filter local documents in searches. Local paths appear in the library and backups, so keep those private when needed.
 
 ## Local folder
 
@@ -231,3 +243,44 @@ Background page updates preserve the current word-label prefix, selected start a
 In Normal mode, press `d` to label visible links directly on the page, just like `f`. Type a label to copy its full URL without opening it. No dialog or search box opens. `Shift+D` / `D` keeps the labels active and builds an ordered, deduplicated clipboard list, one URL per line. Copied links turn green with a checkmark. Escape finishes and leaves the list on your clipboard; another `D` session starts a fresh list.
 
 Arrow keys or Ctrl-d/u scroll to more links while keeping the current list. Labels follow layout changes and keep their codes while their link remains unchanged. Hidden, obscured, collapsed, editor-owned, and executable pseudo-links are excluded. Clipboard failures leave the list intact and do not mark the failed link as copied. Full query strings and fragments are preserved.
+
+
+## AI agents and the existing notebook (1.6.0)
+
+The local companion now includes a stdio MCP server. Install/update it using extension setup, optionally select Codex/Cursor/Claude Desktop, enable AI access, then reconnect your agent. Example: `study keys -> https://kueue.sigs.k8s.io/docs/overview/`. The `study_page` prompt guides the agent through source reading, selective six-color highlights, notes, and five learn-by-layers frames in the **same** Excalidraw notebook. It supplies tools, not a separate model or notebook.
+
+### Install the Codex skill
+
+The maintained skill lives in [`skills/study-keys`](skills/study-keys/SKILL.md). To install or update only the skill from a repository checkout:
+
+```sh
+python3 native/install_skill.py
+```
+
+`npm run install:skill` is an equivalent shortcut. The standalone installer needs Python 3.11+ and no npm packages. It installs into `$CODEX_HOME/skills/study-keys`, or `~/.codex/skills/study-keys` by default. Use `--codex-home /path/to/codex-config` for another Codex configuration directory. An identical installation is left alone; an older or customized copy is preserved under the same Codex directory's `skill-backups/study-keys/` before replacement. The installer prints the backup path. Re-running the command updates from this checkout's version, so pull the desired repository changes first.
+
+For a new setup, select **Codex (MCP + skill)** on the extension setup page. Its generated companion command installs the helper, configures Codex MCP, and installs the bundled skill together:
+
+```sh
+python3 install.py --extension-id YOUR_EXTENSION_ID --client codex
+```
+
+Run that command in the extracted companion ZIP; from a repository checkout, use `python3 native/install.py` instead. The ZIP also supports `python3 install_skill.py` for a skill-only update. Choosing another client or omitting `--client` does not install a Codex skill.
+
+Keep Chrome running, enable AI access in Study Keys setup, and start a fresh Codex CLI session:
+
+```text
+$study-keys https://kueue.sigs.k8s.io/docs/overview/
+```
+
+Or launch from your shell with single quotes so it preserves the dollar sign:
+
+```sh
+codex '$study-keys https://kueue.sigs.k8s.io/docs/overview/'
+```
+
+The skill reads the page and existing work, adds selective highlights and notes, builds learn-by-layers diagrams in the current notebook, and checks the saved result. Skill-only installation does not configure MCP, install the Chrome extension, or enable AI access. To uninstall only the skill, move its `study-keys` directory outside `skills`; the reading library and MCP registration remain intact.
+
+Tools cover page/selection reading, observed native-details expansion, annotation creation/edit/archive/restore, notebook read/open/render, element patches, atomic study batches, run receipts and guarded undo. Changes use the existing disk transaction path and appear in the usual sidebar and canvas. A healthy open notebook is saved and briefly paused before changes. Source drift, ambiguous quotes and stale revisions fail without a partial batch. Retrying an identical request ID does not duplicate work.
+
+Run `npm test` and `npm run test:native` for unit, persistence, installer and real MCP/native transport tests. The wire test uses a fixture DOM adapter; installed Chrome checks are recorded in `release/mcp-verification.md`. See `native/setup-README.md` for setup/removal and `design/study-keys-mcp.md` for the broader roadmap. This release's MCP focuses on reading, annotations and drawings; it does not yet expose every tab/group/navigation command.

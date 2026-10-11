@@ -1,6 +1,6 @@
 {
   "name": "study-keys",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "private": true,
   "type": "module",
   "devDependencies": {
@@ -13,10 +13,12 @@
     "preview": "node preview.mjs",
     "package": "node build.mjs --zip",
     "test:native": "python3 -m unittest discover -s native -p \"test_*.py\"",
-    "install:local": "python3 native/install.py"
+    "install:local": "python3 native/install.py",
+    "install:skill": "python3 native/install_skill.py"
   },
   "dependencies": {
     "@excalidraw/excalidraw": "0.18.1",
+    "fractional-indexing": "3.2.0",
     "react": "18.3.1",
     "react-dom": "18.3.1"
   },

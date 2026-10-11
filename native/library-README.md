@@ -28,3 +28,5 @@ The extension writes this folder first and keeps a browser cache for reading if 
 Use `git status`, `git add .` and `git commit` to keep versions. Connect a **private** GitHub repository if you want a remote backup. This folder can contain private notes, copied passages, page URLs and drawings; Git pushes remain your choice. No remote is configured by the installer, and commits/pushes are never automatic.
 
 To use this library on another Mac: copy/clone it to `~/.study-keys`, load the Study Keys extension, and run its `native/install.py --extension-id <Chrome extension ID>` with Python 3.11+. The helper registration is per machine and is not included in Git.
+
+Local Markdown and HTML documents use `pages/local-files/<filename>--<URL-hash>/` with the same per-page files. The source document is never modified. Local paths are saved as identifiers; renaming a source creates a new identity.

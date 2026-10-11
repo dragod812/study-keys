@@ -1,16 +1,16 @@
-import {COLORS} from './core.js';
+import {COLORS,isLocalDocument} from './core.js';
 import {request} from './transport.js';
 const $=s=>document.querySelector(s);
 let context=null,page=null,lastSignature='',editing=false,filter='',polling=false;
 function node(tag,text,cls){const n=document.createElement(tag);if(text!=null)n.textContent=text;if(cls)n.className=cls;return n;}
 function button(text,run,cls){const b=node('button',text,cls);b.type='button';b.onclick=run;return b;}
 function status(text){$('#status').textContent=text;}
-async function activeContext(){const tabs=await chrome.tabs.query({active:true,currentWindow:true});if(!tabs[0])throw Error('Open an HTTP or HTTPS webpage.');const data=await chrome.tabs.sendMessage(tabs[0].id,{type:'context'});if(!data?.url)throw Error('Open a supported webpage.');return {...data,tabId:tabs[0].id};}
+async function activeContext(){const tabs=await chrome.tabs.query({active:true,currentWindow:true});if(!tabs[0])throw Error('Open a webpage or local Markdown or HTML file.');const data=await chrome.tabs.sendMessage(tabs[0].id,{type:'context'});if(!data?.url)throw Error('Open a supported webpage.');return {...data,tabId:tabs[0].id};}
 async function refresh(){
  if(polling||editing)return;polling=true;
  try{const next=await activeContext(),data=await request({type:'page',url:next.url}),sig=JSON.stringify([next,data]);context=next;page=data;
-  if(sig!==lastSignature){lastSignature=sig;$('#page-title').textContent=next.title||next.url;$('#enabled').checked=data.enabled;$('#enabled').disabled=false;$('#add').disabled=false;status(data.storage?.online?'Saved in ~/.study-keys':data.storage?.error?'Local folder unavailable · cached copy':'');render();}
- }catch{context=page=null;lastSignature='';$('#page-title').textContent='This tab is not available to Study Keys.';$('#enabled').disabled=true;$('#add').disabled=true;$('#annotations').replaceChildren(node('p','Open a regular webpage and reload it if you just installed the extension. Chrome pages, PDFs and embedded frames are not supported.','origin'));}
+  if(sig!==lastSignature){lastSignature=sig;$('#page-title').textContent=next.title||next.url;$('#enabled').checked=data.enabled;$('#enabled-scope').textContent=isLocalDocument(next.url)?'Enable keyboard shortcuts for this local file':'Enable keyboard shortcuts on this site';$('#enabled').disabled=false;$('#add').disabled=false;status(data.storage?.online?'Saved in ~/.study-keys':data.storage?.error?'Local folder unavailable · cached copy':'');render();}
+ }catch{context=page=null;lastSignature='';$('#page-title').textContent='This tab is not available to Study Keys.';$('#enabled').disabled=true;$('#add').disabled=true;$('#annotations').replaceChildren(node('p','Open a webpage or local Markdown or HTML file and reload it after updating. For local files, enable Allow access to file URLs in Study Keys’ Chrome extension details. Chrome pages, PDFs and embedded frames are not supported.','origin'));}
  finally{polling=false;}
 }
 function render(){
@@ -20,7 +20,7 @@ function render(){
  for(const item of items){const color=COLORS.find(c=>c.id===item.color),card=node('article',null,'card');card.style.setProperty('--accent',color.hex);const meta=node('div',null,'meta');meta.append(node('span',color.label,'tag'));if(item.anchor&&!context.restored.includes(item.id))meta.append(node('span','Passage not found','warning'));card.append(meta);
   if(item.anchor){const b=button('',async()=>{try{const result=await chrome.tabs.sendMessage(context.tabId,{type:'jumpAnnotation',id:item.id});status(result.found?'Passage shown in the page.':'Expand the page’s collapsed content to help restore this passage. Your annotation is preserved.');}catch{status('The page changed. Reopen this annotation.');}},'quote-jump');b.setAttribute('aria-label','Jump to passage: '+item.anchor.quote.slice(0,100));b.append(node('blockquote',item.anchor.quote));card.append(b);}
   if(item.note)card.append(node('p',item.note,'note'));
-  const actions=node('div',null,'actions');actions.append(button('Edit / add note',()=>edit(item,card)),button('Move to trash',async()=>{try{await request({type:'save',url:page.url,title:page.title,item:{...item,archived:true},base:item.updatedAt});lastSignature='';await refresh();status('Moved to trash. Restore it from All websites → Trash.');}catch(e){status(e.message);}}));card.append(actions);list.append(card);
+  const actions=node('div',null,'actions');actions.append(button('Edit / add note',()=>edit(item,card)),button('Move to trash',async()=>{try{await request({type:'save',url:page.url,title:page.title,item:{...item,archived:true},base:item.updatedAt});lastSignature='';await refresh();status('Moved to trash. Restore it from All pages → Trash.');}catch(e){status(e.message);}}));card.append(actions);list.append(card);
  }
 }
 function edit(item,card=null){
@@ -41,4 +41,4 @@ $('#enabled').onchange=async e=>{if(!page)return;try{await request({type:'enable
 chrome.storage.onChanged.addListener(()=>refresh());chrome.tabs.onActivated.addListener(()=>refresh());
 setInterval(refresh,1200);refresh();
 
-$('#drawing').onclick=async()=>{try{const c=await activeContext();await chrome.tabs.sendMessage(c.tabId,{type:'openNotebook'});}catch{status('Reload the webpage to open its notebook.');}};
+$('#drawing').onclick=async()=>{try{const c=await activeContext();await chrome.tabs.sendMessage(c.tabId,{type:'openNotebook'});}catch{status('Reload this page to open its notebook.');}};

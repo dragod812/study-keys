@@ -26,6 +26,18 @@ test('embedded notebooks require a session for the correct tab and cannot access
  assert.equal((await call({type:'openNotebook',url:'https://other.example'},parent)).ok,false);
  const scene={type:'excalidraw',elements:[],files:{},appState:{}};
  assert.equal((await call({type:'notebookRequest',action:'drawingSave',session,base:null,scene,url:'https://other.example'},iframe)).ok,true);
+
+ for(const ext of ['md','html']){
+ const local={url:'file:///notes/Queue.'+ext,tab:{id:5,windowId:1},frameId:0};
+ assert.equal((await call({type:'page',url:local.url},local)).ok,true);
+ assert.equal((await call({type:'page',url:'file:///notes/Other.md'},local)).code,'PAGE_CHANGED');
+ const localSession=(await call({type:'openNotebook',url:local.url,title:'Local Markdown'},local)).value.session;
+ const localFrame={url:own+'notebook.html?session='+localSession,tab:{id:5},frameId:2};
+ assert.equal((await call({type:'notebookRequest',action:'drawingSave',session:localSession,scene,base:null},localFrame)).ok,true);
+ assert.equal((await call({type:'notebookRequest',action:'drawingLoad',session:localSession},localFrame)).value.drawing.url,local.url);
+ assert.equal((await call({type:'notebookRequest',action:'drawingLoad',session:localSession},{...localFrame,tab:{id:6}})).ok,false);
+ assert.equal((await call({type:'page',url:'file:///etc/passwd'},{...local,url:'file:///etc/passwd'})).ok,false);
+ }
  const saved=await call({type:'notebookRequest',action:'drawingLoad',session},iframe);assert.equal(saved.value.drawing.url,parent.url);
  // Marks reuse an open matching tab, prefer the sender when duplicates exist,
  // and reopen a closed page before restoring its position.

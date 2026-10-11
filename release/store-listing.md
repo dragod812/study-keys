@@ -30,12 +30,21 @@ KEEP YOUR HANDS ON THE KEYS
 Use Vim-style scrolling, link hints, page search, an outline, and tab navigation. Lowercase marks remember places on a page; uppercase marks travel across tabs. Normal, Visual, and Highlight modes have distinct jobs. Insert mode passes keys through to the website; Ctrl+C returns to Normal mode. Handled Study Keys commands also claim key release, preventing simultaneous playback or fullscreen shortcuts on media pages. Reload existing tabs after updating. Press ? for the keyboard guide. Use one Vim navigation extension at a time to avoid conflicting shortcuts.
 
 FIND YOUR PLACE ACROSS TABS
-Space Enter searches open-tab titles, URLs and group names. Space p s finds passages across loaded tabs; Space d s searches this document fuzzily and / searches literally. Ctrl+O and Ctrl+I move backward and forward through your session jumplist. ]] and [[ move between headings; Space Space returns to the previous tab.
+Space Enter searches open-tab titles, URLs and group names. Space p s finds passages across loaded tabs; Space d s searches this document fuzzily and / searches literally. Ctrl+O and Ctrl+I move backward and forward through your session jumplist. ]] and [[ move between headings; zt / zz / zb align the active section or selection at the top / center / bottom. Space Space returns to the previous tab.
 
 KEEP A READING WORKSPACE
 The Space g menu finds, creates and focuses tab groups or moves Chrome-selected tabs between them. Save quick spots with Space e a, return with Space 1 through 9, and save or restore a workspace with Space w s / Space w o. Workspaces preserve tabs, groups and reading positions without closing other tabs. Pin search results and move through them with Space j / Space k. Space p q finds unresolved Question annotations; resolve them in the note editor.
 
 Space s toggles Chrome's native vertical tabs only with an optional macOS helper opt-in and Accessibility access. This fixed action is unavailable on Linux and in Codex's browser. Space h continues to open page notes. The default helper installation does not enable the native toggle.
+
+QUIETER CONTROLS
+The small mode pill, which-key menu and selection controls sit in the lower-right corner. Compact notifications leave more of the page visible. Quick spots share a 1–9 hint; ? keeps full shortcut descriptions searchable.
+
+STUDY LOCAL DOCUMENTS
+Enable Allow access to file URLs in extension details to use Study Keys on local HTML and rendered Markdown files. Markdown Viewer needs its own file access. The companion saves annotations in your library without modifying source files or scanning folders. Update both the extension and companion.
+
+OPTIONAL AI STUDY ASSISTANT
+The companion includes a local MCP server. When you enable AI access, your chosen agent can read a requested page, add selective highlights and notes, and build editable learn-by-layers diagrams in the existing Excalidraw notebook. Existing manual work is preserved. Codex setup also installs the $study-keys skill; the repository has a standalone skill installer. AI access is off by default and can be revoked. Your chosen cloud agent may send requested content to its model provider; its policies apply. Study Keys does not call a separate generation service.
 
 YOUR LIBRARY, IN YOUR FOLDER
 Highlights, notes, marks, drawings, quick spots and workspaces save in ~/.study-keys, organized by website and page. Chrome keeps a local cache. Export a backup or manage the folder with your own Git workflow. The helper initializes a local Git repository but never adds a remote, commits, or uploads your library. No Study Keys account, analytics, or cloud sync service is required or used.
@@ -48,7 +57,7 @@ https://dragod812.github.io/study-keys/
 
 ## Single purpose
 
-Help users study web pages with keyboard navigation across reading tabs, local passage annotations, and page-linked drawing notebooks.
+Help users study web pages and opened Markdown/HTML documents with keyboard navigation, local annotations and page-linked drawing notebooks, optionally operated by their chosen AI agent.
 
 ## Permission explanations
 
@@ -57,8 +66,8 @@ Help users study web pages with keyboard navigation across reading tabs, local p
 - sidePanel: Display the current page's highlights and notes in Chrome's side panel when opened by the user.
 - tabs: Read open-tab titles and URLs for the tab picker, target passage searches at loaded accessible tabs, and switch or restore reading tabs. No history API or scan of stored browsing history.
 - tabGroups: Let the user create, find, focus and restore Chrome tab groups and move selected tabs between groups. Group metadata is processed locally and included in explicitly saved workspaces.
-- nativeMessaging: Communicate only with the separately installed com.studykeys.local helper to save and restore the user's library in ~/.study-keys. An optional macOS opt-in performs one fixed action: click Chrome’s native vertical-tabs expand/collapse button while Chrome is foreground. It requires Accessibility access. The default installation does not enable it. The helper has no network or arbitrary command API. It accepts only explicitly registered extension IDs.
-- HTTP/HTTPS content script matches: Read visible page text and controls for keyboard navigation, selection labels, restoring user-created highlights, and searching loaded passages. Text is processed on device; a bounded session jumplist and pinned search excerpts stay in session storage. Explicitly saved annotations, page identifiers, marks, drawings, quick spots and workspaces stay in the local library.
+- nativeMessaging: Connect to the separately installed com.studykeys.local companion for ~/.study-keys library storage. If the user enables AI access, it relays requested page reading and annotation/notebook operations between the extension and a local stdio MCP client over a private Unix socket. AI access is off by default and revocable. The optional macOS vertical-tabs action clicks only Chrome's native expand/collapse button and needs separate opt-in and Accessibility access. No network listener or arbitrary command API is exposed. Only explicitly registered extension IDs are allowed.
+- HTTP/HTTPS/file content script matches: Read rendered page text and controls for keyboard navigation, selection, highlight restoration and loaded-passage search. Local Markdown/HTML works only after the user enables file-URL access; unopened files and folders are not scanned. Saved annotations, file/page identifiers and drawings stay in the local library. With optional AI access enabled, the user's connected agent can request page text and edit those records; a cloud agent's model provider may process the requested content under its own policies.
 - Remote code: None. JavaScript, Excalidraw, and fonts are bundled. No remotely hosted executable code is loaded.
 
 ## Reviewer setup
@@ -86,9 +95,13 @@ This beta requires macOS or Linux, Chrome 131+, Python 3.11+, and Git. No login 
 16. Optional macOS-only vertical-tabs test: rerun the helper installer with --enable-vertical-tabs appended, grant Chrome Accessibility access, and enable vertical tabs in Chrome. With Chrome foreground, Space s toggles its native Expand Tabs / Collapse Tabs control. Linux and Codex do not support this optional action. Space h opens Study Keys notes regardless.
 17. Reload the extension while a reading tab remains open. Its disconnected badge offers an explicit page reload. Reload when website edits are safe; the current navigation menu should work again. No automatic website reload occurs.
 
+18. Enable Allow access to file URLs for Study Keys. Open an HTML file or Markdown rendered by Markdown Viewer (also needs file access). Select, highlight, add a note and open the notebook. Reload to verify persistence; source file bytes remain unchanged.
+19. Optional AI test: update the companion with --client codex (or another setup-supported MCP client), enable AI access in setup, and reconnect the client. Codex also receives the bundled $study-keys skill. Ask it to study the demo URL. read_page returns rendered content and existing work; apply_study_changes can add exact-quote highlights, notes and learn-by-layers frames to the same notebook. Open Space h / Space d n to inspect the result. Retry the identical request ID to confirm no duplicates. Disable AI access to revoke agent operations. Full tool and test instructions: https://github.com/dragod812/study-keys/blob/main/release/mcp-verification.md
+20. Space shows a compact corner menu, Space d a short submenu, and ? searchable help. Verify the smaller mode pill, selection bar and toast on desktop and a narrow window. Full descriptions and enable/disable controls remain in help.
+
 No credentials are needed. If the helper is unavailable, the setup page shows the error and writes fail visibly. To remove the integration, remove the com.studykeys.local.json native-host registration and ~/.study-keys/.integration after preserving your library. Uninstalling the extension does not delete the local library.
 
 ## Store item
 
 ID: jcjililghkknjbifgcnnkipiblmmmhid
-Data disclosures: Web history (open-tab metadata and saved page identifiers/workspaces), User activity (keyboard commands and reading jumps/marks), Website content (searched passages, selected text, notes and drawings); processed and stored locally. No remote code.
+Data disclosures: Web history (open-tab metadata and saved page identifiers/workspaces), User activity (keyboard commands and reading jumps/marks), Website content (searched passages, selected text, notes and drawings); processed and stored locally. With separately enabled MCP access, requested content is also provided to the user’s chosen agent, which may use a cloud model provider. No remote code.

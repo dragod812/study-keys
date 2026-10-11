@@ -1,6 +1,6 @@
 import React from 'react';
 import {createRoot} from 'react-dom/client';
-import {Excalidraw,MainMenu,serializeAsJSON,loadFromBlob} from '@excalidraw/excalidraw';
+import {Excalidraw,MainMenu,serializeAsJSON,loadFromBlob,exportToBlob} from '@excalidraw/excalidraw';
 import '@excalidraw/excalidraw/index.css';
 import './editor.css';
 import {cleanScene} from './notebook-core.js';
@@ -10,6 +10,9 @@ const $=s=>document.querySelector(s),session=new URLSearchParams(location.search
 const root=createRoot($('#canvas'));
 const rpc=(action,extra={})=>request({type:'notebookRequest',action,session,...extra});
 let scene=null,revision=null,api=null,ready=false,dirty=false,conflict=false,downloaded=false,saved='',inflight=null,timer,port=null,version=0,lastStatus='Opening local canvas…',lastError=false,recoveries=[],filename='Study Keys notebook',saveLocation='this device';
+let agentLocked=false,agentTimer,agentPort;
+const agentCover=document.createElement('div');agentCover.textContent='Study Keys agent is updating this notebook…';agentCover.style.cssText='position:fixed;inset:0;z-index:999999;background:#fffefaee;display:none;align-items:center;justify-content:center;font:18px system-ui;color:#183b36';document.body.append(agentCover);
+function unlockAgent(){agentLocked=false;clearTimeout(agentTimer);agentCover.style.display='none';}
 function status(text,error=false){lastStatus=text;lastError=error;$('#message').textContent=error?text:'';$('#message').hidden=!error;port?.postMessage({type:'status',text,error});$('#retry').hidden=!error||conflict;$('#reload').hidden=!conflict;}
 function snapshot(elements,appState,files){const data=JSON.parse(serializeAsJSON(elements,appState,files,'local'));data.appState={...data.appState,theme:appState.theme,scrollX:appState.scrollX,scrollY:appState.scrollY,zoom:appState.zoom};return data;}
 function capture(){if(!api)return;changed(api.getSceneElementsIncludingDeleted(),api.getAppState(),api.getFiles());}
@@ -18,7 +21,7 @@ async function flush(){
  clearTimeout(timer);if(!ready)return false;if(inflight){await inflight;return dirty?flush():true;}
  if(conflict)return false;if(!dirty)return true;
  const json=JSON.stringify(scene),base=revision;
- inflight=(async()=>{try{const result=await rpc('drawingSave',{scene:JSON.parse(json),base});saveLocation=result.storage?.online?'~/.study-keys':'this device';revision=result.revision;saved=json;dirty=JSON.stringify(scene)!==saved;status(dirty?'Saving latest changes…':'Saved to '+saveLocation+' · ⌘/Ctrl Enter closes');return true;}catch(e){conflict=/another tab/.test(e.message);status(e.message,true);return false;}finally{inflight=null;}})();
+ inflight=(async()=>{try{const result=await rpc('drawingSave',{scene:JSON.parse(json),base});saveLocation=result.storage?.online?'~/.study-keys':'this device';revision=result.revision;saved=json;dirty=JSON.stringify(scene)!==saved;status(dirty?'Saving latest changes…':'Saved to '+saveLocation+' · ⌘/Ctrl Enter closes');return true;}catch(e){conflict=/another tab|another window|changed/.test(e.message);status(e.message,true);return false;}finally{inflight=null;}})();
  const ok=await inflight;if(ok&&dirty)return flush();return ok;
 }
 function download(data,name){const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),href=URL.createObjectURL(blob),a=document.createElement('a');a.href=href;a.download=name+'.excalidraw';a.click();setTimeout(()=>URL.revokeObjectURL(href),30000);}
@@ -65,4 +68,25 @@ $('#file').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{
 document.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key==='Enter'){e.preventDefault();e.stopImmediatePropagation();if(e.shiftKey)port?.postMessage({type:'focusWindow'});else close();}},true);
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&dirty)flush();});
 window.addEventListener('beforeunload',e=>{if(dirty){flush();e.preventDefault();e.returnValue='';}});
+if(chrome.runtime?.connect){
+ agentPort=chrome.runtime.connect({name:'study-keys-editor:'+session});
+ agentPort.onDisconnect.addListener(unlockAgent);
+ agentPort.onMessage.addListener(m=>{(async()=>{
+  if(m.action==='prepare'){
+   if(!ready||conflict||api?.getAppState().editingTextElement)throw Error('Finish the current notebook edit or resolve its save conflict before asking the agent to edit.');
+   agentLocked=true;agentCover.style.display='flex';capture();
+   if(!await flush()){unlockAgent();throw Error('Could not save the open notebook. Your draft is unchanged.');}
+   agentTimer=setTimeout(()=>{unlockAgent();start();},60000);return {revision};
+  }
+  if(m.action==='release'){try{if(agentLocked){const current=await rpc('drawingLoad');if((current.drawing?.revision||null)!==revision)await start();}return {released:true};}finally{unlockAgent();}}
+  if(m.action==='render'){
+   if(!ready||conflict)throw Error('Notebook is not ready to render.');capture();if(!await flush())throw Error('Save the notebook before rendering.');
+   const blob=await exportToBlob({elements:api.getSceneElements(),appState:{...api.getAppState(),exportBackground:true,exportWithDarkMode:false},files:api.getFiles(),mimeType:'image/png',maxWidthOrHeight:2400});
+   const bytes=new Uint8Array(await blob.arrayBuffer());let raw='';for(let i=0;i<bytes.length;i+=8192)raw+=String.fromCharCode(...bytes.subarray(i,i+8192));
+   return {mimeType:'image/png',data:btoa(raw),revision,elements:api.getSceneElements().length};
+  }
+  throw Error('Unknown notebook agent action.');
+ })().then(value=>agentPort.postMessage({id:m.id,value}),error=>agentPort.postMessage({id:m.id,error:error.message}));});
+ window.addEventListener('keydown',e=>{if(agentLocked){e.preventDefault();e.stopImmediatePropagation();}},true);
+}
 start();

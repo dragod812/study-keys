@@ -8,7 +8,7 @@ export function parseSearch(query=''){
   const filters={};const text=String(query).replace(/\b(site|group|color|has):("[^"]*"|\S+)/g,(_,key,value)=>{filters[key]=value.replace(/^"|"$/g,'').toLowerCase();return '';}).trim();return {text,filters};
 }
 export function matchesFilters(entry,filters){
-  let host='';try{host=new URL(entry.url).hostname;}catch{}
+  let host='';try{host=new URL(entry.url).protocol==='file:'?'local':new URL(entry.url).hostname;}catch{}
   return (!filters.site||host===filters.site||host.endsWith('.'+filters.site))&&(!filters.group||String(entry.group||'').toLowerCase().includes(filters.group))&&(!filters.color||entry.color===filters.color)&&(!filters.has||(filters.has==='note'?!!entry.note:filters.has==='drawing'?!!entry.drawing:false));
 }
 export function rankEntries(entries,query){const {text,filters}=parseSearch(query);return entries.map((entry,i)=>({entry,i,rank:matchesFilters(entry,filters)?score([entry.label,entry.detail,entry.url,entry.group].join(' '),text):-1})).filter(x=>x.rank>=0).sort((a,b)=>b.rank-a.rank||a.i-b.i).map(x=>x.entry);}

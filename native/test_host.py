@@ -21,6 +21,40 @@ class FileStoreTests(unittest.TestCase):
         with self.assertRaises(ValueError):self.db.request({'op':'set','values':{'../../outside':{}}})
         outside=self.root/'outside';outside.mkdir();(self.root/'pages').symlink_to(outside)
         with self.assertRaises(ValueError):self.db.folder(URL)
+    def test_local_markdown_is_identity_only_and_survives_restart(self):
+        source=self.root/'Original notes.md';source.write_text('# Original\nKeep this source unchanged.\n')
+        original=source.read_bytes();url=source.as_uri()
+        page={**PAGE,'url':url,'title':'Local Markdown'};drawing={**DRAW,'url':url}
+        self.db.request({'op':'set','values':{'page:'+url:page,'drawing:'+url:drawing}})
+        folder=self.db.folder(url)
+        self.assertEqual(folder.parent,self.db.root/'pages'/'local-files')
+        self.assertIn('Original-notes-md--',folder.name)
+        self.assertEqual(source.read_bytes(),original)
+        self.assertEqual(Library(self.root).get()['page:'+url],page)
+        self.assertEqual(Library(self.root).get()['drawing:'+url]['scene'],SCENE)
+        self.assertNotEqual(folder,self.db.folder((self.root/'Other'/'Original notes.md').as_uri()))
+        # Missing source paths are allowed as identities; the helper never opens them.
+        self.assertTrue(self.db.folder('file:///missing/notes/README.MD').is_relative_to(self.db.root))
+        for bad in ['file:///etc/passwd','file:///notes/','file:///notes/a.pdf','file://server/notes/a.md','file:///notes/a%00.md','file:///notes/a%2fb.md','file:///notes/a%5cb.md','file:///notes/a.md#section','file:///notes/a.md?cache=1']:
+            with self.assertRaises(ValueError,msg=bad):self.db.folder(bad)
+
+    def test_local_html_saves_beside_markdown_without_touching_sources(self):
+        for suffix in ['html','htm','HTML']:
+            with self.subTest(suffix=suffix):
+                source=self.root/('Saved page.'+suffix)
+                source.write_text('<!doctype html><h1>Local page</h1><p>Unchanged source.</p>')
+                original=source.read_bytes();url=source.as_uri()
+                page={**PAGE,'url':url,'title':'Local HTML'};drawing={**DRAW,'url':url}
+                self.db.request({'op':'set','values':{'page:'+url:page,'drawing:'+url:drawing}})
+                folder=self.db.folder(url)
+                self.assertEqual(folder.parent,self.db.root/'pages'/'local-files')
+                self.assertEqual(source.read_bytes(),original)
+                self.assertEqual(Library(self.root).get()['page:'+url],page)
+                self.assertEqual(Library(self.root).get()['drawing:'+url]['scene'],SCENE)
+                self.assertNotEqual(folder,self.db.folder((self.root/'Saved page.md').as_uri()))
+        for bad in ['file://server/private/page.html','file:///notes/page.html.pdf','file:///notes/a%00.html','file:///notes/a%2fb.htm','file:///notes/a%5cb.html']:
+            with self.assertRaises(ValueError,msg=bad):self.db.folder(bad)
+
     def test_compare_and_swap_preserves_newer_changes(self):
         key='page:'+URL;self.db.request({'op':'set','values':{key:PAGE},'expected':{key:None}})
         changed={**PAGE,'title':'Newer'};self.db.request({'op':'set','values':{key:changed},'expected':{key:digest(PAGE)}})

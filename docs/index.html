@@ -24,10 +24,10 @@
 <strong>macOS / Linux beta.</strong> Requires Chrome 131+, Python 3.11+, Git, and a separate local helper. Chrome Web Store review is pending. The helper is required for saving.</p>
 </section>
 <section class="release-note">
-<div class="eyebrow">New in 1.5.0</div>
-<h2>Find your place. Follow your ideas.</h2>
-<p>Search across open tabs, jump back through your reading trail, and return to saved workspaces. Your highlights, notes, and drawings stay beside the page.</p>
-<a href="https://github.com/dragod812/study-keys/releases/tag/v1.5.0">See the release and downloads →</a>
+<div class="eyebrow">New in 1.6.0</div>
+<h2>Less in the way. More ways to learn.</h2>
+<p>Compact corner menus keep the page in view. Study local Markdown and HTML, or let your chosen AI agent add highlights, notes and layered diagrams to the same notebook.</p>
+<a href="https://github.com/dragod812/study-keys/releases/tag/v1.6.0">See the release and downloads →</a>
 </section>
 <div class="palette">
 <span style="background:#ffe9a1">1 · Key idea</span>
@@ -78,10 +78,11 @@
 </section>
 <section id="navigation">
 <h2>Your reading desk, a few keys away.</h2>
+<p>The small mode pill, shortcut hints and selection controls stay in the lower-right corner. Notifications are smaller too. The <kbd>?</kbd> guide keeps full descriptions searchable.</p>
 <p>Press <kbd>Space</kbd> to discover the commands. Type each key in sequence; use <kbd>Esc</kbd> to close a picker.</p>
 <div class="shortcut-table">
 <table>
-<caption>Navigation shortcuts in version 1.5.0</caption>
+<caption>Navigation shortcuts in version 1.6.0</caption>
 <thead>
 <tr>
 <th scope="col">Keys</th>
@@ -117,7 +118,7 @@
 <td>
 <kbd>]]</kbd> / <kbd>[[</kbd>
 </td>
-<td>Next / previous section. Add a count, such as <kbd>3]]</kbd>. Center the passage with <kbd>zz</kbd>.</td>
+<td>Next / previous section. Add a count, such as <kbd>3]]</kbd>. Align the section or selected passage with <kbd>zt</kbd> (top), <kbd>zz</kbd> (center), or <kbd>zb</kbd> (bottom).</td>
 </tr>
 <tr>
 <td>
@@ -171,6 +172,18 @@
 </table>
 </div>
 <p class="small">Passage search covers accessible, loaded pages and excludes editors. Sleeping tabs are left asleep. Workspaces reuse matching tabs and leave other tabs open. Browser shortcuts and supported features can vary outside Chrome.</p>
+</section>
+<section id="local-documents">
+<h2>Your local documents, too.</h2>
+<p>Open HTML files directly, or render Markdown with Markdown Viewer. Enable <strong>Allow access to file URLs</strong> in Study Keys’ extension details; Markdown Viewer needs its own file access enabled. Highlights, notes, notebooks and reading positions work on the rendered document.</p>
+<p>The companion saves annotations under <code>~/.study-keys/pages/local-files/</code>. It leaves source files unchanged and does not scan folders. Update both the extension and companion for this release.</p>
+</section>
+<section id="agents">
+<h2>Study with your agent. Keep one notebook.</h2>
+<p>The companion includes an optional MCP connection. Your agent can read a requested page, add selective highlights and explanatory notes, and build editable learn-by-layers diagrams in the page’s existing Excalidraw notebook. Your manual work remains in the same canvas.</p>
+<p>Choose <strong>Codex (MCP + skill)</strong> during companion setup to install both integrations, enable AI access, then start a fresh Codex session and use <code>$study-keys https://example.com/article</code>. The same setup offers Cursor and Claude Desktop MCP configuration.</p>
+<p>Already have MCP configured? Install or update just the skill from the repository with <code>python3 native/install_skill.py</code> or <code>npm run install:skill</code>. Customized copies are backed up before replacement. <a href="https://github.com/dragod812/study-keys#install-the-codex-skill">Skill setup and usage →</a></p>
+<p class="small">AI access is off by default and can be revoked in setup. The local connection has no network listener; your chosen cloud agent may send requested page content to its model provider. See <a href="privacy.html">privacy and data use</a>. Chrome and the companion must be running; AI access currently covers reading, annotations and drawings.</p>
 </section>
 <section id="setup">
 <h2>Set up once. Keep learning.</h2>

@@ -1,17 +1,21 @@
 # Study Keys release status
 
-- Version: 1.5.0
+- Version: 1.6.0
 - Publisher name: Sidharth Padhee (saved in Web Store publisher settings)
 - Public repository: https://github.com/dragod812/study-keys
-- Beta release: https://github.com/dragod812/study-keys/releases/tag/v1.5.0
+- Beta release: https://github.com/dragod812/study-keys/releases/tag/v1.6.0
 - Website: https://dragod812.github.io/study-keys/
 - Privacy: https://dragod812.github.io/study-keys/privacy.html
 - Chrome Web Store draft ID: jcjililghkknjbifgcnnkipiblmmmhid
 - Submitted: package, description, Education category, English (United States), icon, 3 screenshots, promo tile, homepage, support, privacy/permission explanations, local-data disclosures, reviewer instructions.
 - Distribution: Public, free of charge, all regions.
-- Google confirmed 1.5.0 submission: Pending Review. Publisher contact email verified. Automatic publication after approval is enabled.
+- 1.6.0 package verified locally; replacing the earlier 1.5.0 submission. Final publication status will be recorded after the dashboard confirms submission.
 - Google flagged broad HTTP/HTTPS access for possible in-depth review. This access supports the advertised navigation and highlight restoration on visited web pages.
 - Submission date: 2026-10-11 UTC. The listing is not live on the Web Store until approved.
+
+## Version 1.6.0 verification
+
+84 JavaScript tests and 26 native helper tests pass. Browser regression checks, package integrity and bundled skill installation passed. See [release verification](release-1.6.0-verification.md) for results and installed-browser limitations. The release includes compact controls, local Markdown/HTML, reading alignment, the optional MCP companion and installable Codex skill.
 
 ## Version 1.5.0 verification and publication
 

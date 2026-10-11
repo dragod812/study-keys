@@ -1,7 +1,7 @@
-import {pageKey} from './core.js';
+import {pageKey,supportedPage} from './core.js';
 import {appendJump,cleanLocation,cleanStudyState,rankEntries,parseSearch,matchesFilters} from './navigation-core.js';
 const EMPTY={x:0,y:0,pageX:0,pageY:0,pane:null,anchor:null,viewportY:0};
-const readable=tab=>/^https?:/.test(tab?.url||'');
+const readable=tab=>supportedPage(tab?.url||'');
 export function createNavigationService(api,library,verticalTabs=null){
   const searches=new Map();let queue=Promise.resolve();const enqueue=fn=>{const task=queue.then(fn);queue=task.catch(()=>{});return task;};
   const session=api.storage.session,key='reading-navigation';

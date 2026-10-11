@@ -46,5 +46,5 @@ export function notebookWindow({surface,getPage,say,clearMode}) {
    setTimeout(()=>{if(shell&&!connected){opening=false;status.textContent='Canvas did not connect. Close and reopen to retry.';}},15000);
   }catch(e){opening=false;destroy();say(e.message);}
  }
- return {open};
+ return {open,state:()=>({open:!!shell,connected,opening})};
 }

@@ -1,9 +1,15 @@
 import {createRepository} from './repository.js';
 import {createDiskStorage,nativeClient} from './disk-storage.js';
-import {pageKey} from './core.js';
+import {pageKey,supportedPage} from './core.js';
 import {createNavigationService} from './navigation-background.js';
-const storage=createDiskStorage(chrome.storage.local);
+import {createAgentService} from './agent-background.js';
+let agentService,reconnectTimer,reconnectDelay=2000;
+const native=nativeClient(chrome.runtime,async command=>{if(!(await chrome.storage.local.get('agent-access'))['agent-access'])throw Error('AI access is off. Enable it in Study Keys setup.');return agentService(command);},()=>{clearTimeout(reconnectTimer);reconnectTimer=setTimeout(()=>startAgentBridge().catch(()=>{}),reconnectDelay);reconnectDelay=Math.min(reconnectDelay*2,60000);});
+const storage=createDiskStorage(chrome.storage.local,native);
 const repository=createRepository(storage);
+agentService=createAgentService(chrome,repository,storage,async()=>{if(!(await chrome.storage.local.get('agent-access'))['agent-access'])throw Error('AI access is off. Enable it in Study Keys setup.');});
+async function startAgentBridge(){if((await chrome.storage.local.get('agent-access'))['agent-access']){const result=await native('bridgeEnable');reconnectDelay=2000;return result;}return {enabled:false};}
+startAgentBridge().catch(()=>{});
 let browserNative;
 const navigation=createNavigationService(chrome,storage,()=>{browserNative??=nativeClient();return browserNative('toggleVerticalTabs');});
 chrome.tabs.onActivated?.addListener(info=>navigation.activated(info).catch(()=>{}));
@@ -57,7 +63,13 @@ chrome.runtime.onMessage.addListener((m,sender,respond)=>{
       for(let i=0;i<50;i++){try{const answer=await chrome.tabs.sendMessage(target.id,{type:'restoreMark',url:mark.url,mark,name:m.name});if(answer?.restored)return {jumped:true};}catch{}await new Promise(r=>setTimeout(r,200));}
       throw Error('Opened the marked page. It is still loading; press the mark shortcut again to restore its position.');
     }
-    if(m.type==='storageStatus')return storage.status();
+    if(m.type==='storageStatus'){const status=await storage.status();return {...status,agentAccess:!!(await chrome.storage.local.get('agent-access'))['agent-access']};}
+    if(m.type==='agentAccess'){
+      await chrome.storage.local.set({'agent-access':!!m.enabled});
+      clearTimeout(reconnectTimer);
+      if(m.enabled)await startAgentBridge();else await native('bridgeDisable');
+      return {enabled:!!m.enabled};
+    }
     if(m.type==='openNotebook') {
       if(!sender.tab||sender.frameId!==0)throw Error('Open the notebook from its webpage.');
       const session=crypto.randomUUID();
@@ -70,7 +82,7 @@ chrome.runtime.onMessage.addListener((m,sender,respond)=>{
       if(m.action==='back')await chrome.tabs.goBack(sender.tab.id);
       else if(m.action==='forward')await chrome.tabs.goForward(sender.tab.id);
       else if(m.action==='open'){
-        const target=new URL(m.target);if(!['https:','http:'].includes(target.protocol))throw Error('Enter an HTTP or HTTPS URL.');
+        const target=new URL(m.target);if(!supportedPage(target.href))throw Error('Enter an HTTP/HTTPS URL or a local Markdown or HTML file URL.');
         if(m.newTab)await chrome.tabs.create({url:target.href,active:true});else await chrome.tabs.update(sender.tab.id,{url:target.href});
       }else if(['next','previous','first','last'].includes(m.action)){
         const tabs=(await chrome.tabs.query({windowId:sender.tab.windowId})).sort((a,b)=>a.index-b.index),at=tabs.findIndex(t=>t.id===sender.tab.id);

@@ -128,3 +128,17 @@ test('a stale group search cannot overwrite a concurrent reading checkpoint',asy
   const search=h.request({action:'tabs'});await ready;await h.request({action:'checkpoint',location:point(h.sender().url,550),jump:true});release();await search;
   assert.equal((await h.request({action:'jumps'})).entries[0]?.location.position.y,550);
 });
+
+
+test('loaded Markdown participates in passage search, jumps, quick spots and workspace restoration',async()=>{
+ const h=harness(),url='file:///notes/Queue.md';await h.api.tabs.update(1,{url,title:'Queue.md'});
+ const result=await h.request({action:'search',query:'quota site:local'});assert.equal(result.entries.length,1);assert.equal(result.entries[0].url,url);
+ await h.request({action:'checkpoint',jump:true,location:point(url,300)});
+ assert.equal(h.session.data['reading-navigation'].entries[0].url,url);
+ await h.request({action:'spotSave'});assert.equal(h.library.data.navigation.spots[0].url,url);
+ await h.request({action:'workspaceSave',name:'Local documents'});
+ const workspace=h.library.data.navigation.workspaces[0];assert.equal(workspace.tabs[0].url,url);
+ await h.api.tabs.update(1,{url:'https://example.com/elsewhere'});
+ await h.request({action:'workspaceOpen',id:workspace.id});
+ assert.equal((await h.api.tabs.query({})).filter(t=>t.url===url).length,1);
+});

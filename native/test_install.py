@@ -6,8 +6,8 @@ from unittest.mock import patch
 INSTALLER=Path(__file__).with_name('install.py')
 EXTENSION='abcdefghijklmnopabcdefghijklmnop'
 class InstallerTests(unittest.TestCase):
-    def invoke(self,root,platform='darwin',extension=EXTENSION,git=True,vertical=False):
-        with patch.object(sys,'argv',[str(INSTALLER),'--extension-id',extension]+(['--enable-vertical-tabs'] if vertical else [])),patch.object(sys,'platform',platform),patch.object(sys,'version_info',(3,11,0)),patch('pathlib.Path.home',return_value=root),patch('shutil.which',return_value='/usr/bin/git' if git else None),patch('subprocess.run') as run,contextlib.redirect_stdout(io.StringIO()),contextlib.redirect_stderr(io.StringIO()):
+    def invoke(self,root,platform='darwin',extension=EXTENSION,git=True,vertical=False,client=None):
+        with patch.object(sys,'argv',[str(INSTALLER),'--extension-id',extension]+(['--enable-vertical-tabs'] if vertical else [])+(['--client',client] if client else [])),patch.object(sys,'platform',platform),patch.object(sys,'version_info',(3,11,0)),patch('pathlib.Path.home',return_value=root),patch('shutil.which',return_value='/usr/bin/git' if git else None),patch('subprocess.run') as run,contextlib.redirect_stdout(io.StringIO()),contextlib.redirect_stderr(io.StringIO()):
             runpy.run_path(str(INSTALLER),run_name='__main__')
             return run
     def test_platform_registration_and_existing_library(self):
@@ -40,4 +40,17 @@ class InstallerTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             root=Path(temp);(root/'.study-keys/.git').mkdir(parents=True)
             self.invoke(root).assert_not_called()
+    def test_codex_opt_in_installs_mcp_and_skill_together(self):
+        from install_skill import install_skill
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp)
+            with patch('setup_clients.configure',return_value='Codex configured') as configure,patch('install_skill.install_skill',side_effect=lambda:install_skill(codex_home=root/'.codex')) as skill:
+                self.invoke(root)
+                configure.assert_not_called();skill.assert_not_called()
+                self.invoke(root,client='cursor')
+                skill.assert_not_called()
+                self.invoke(root,client='codex')
+                configure.assert_called_with('codex',root/'.study-keys/.integration/launch-mcp')
+                skill.assert_called_once()
+                self.assertTrue((root/'.codex/skills/study-keys/SKILL.md').is_file())
 if __name__=='__main__':unittest.main()

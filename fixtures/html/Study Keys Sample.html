@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Study Keys — Local HTML sample</title>
+<style>
+:root{color-scheme:light dark;font-family:system-ui,sans-serif;line-height:1.65}body{max-width:70ch;margin:3rem auto;padding:0 1.5rem}h1,h2{line-height:1.2}h2{margin-top:3rem}p{margin:1.2rem 0}nav{display:flex;gap:1rem;flex-wrap:wrap}a{color:light-dark(#185eac,#8ec6ff)}button,input{font:inherit;padding:.5rem .8rem;border:1px solid #888;border-radius:.4rem}input{box-sizing:border-box;width:100%}.eyebrow{font-size:.8rem;letter-spacing:.12em;color:light-dark(#526854,#a7c3ab)}aside{padding:1rem;border-left:3px solid #698570}footer{margin-top:5rem}
+</style></head><body>
+<header><p class="eyebrow">STUDY KEYS / LOCAL HTML CHECK</p><h1>Read a saved HTML page.</h1><nav aria-label="Sections"><a href="#bounded-work">Bounded work</a><a href="#review">Review questions</a><a href="Second%20Sample.htm">Second local HTML page</a></nav></header>
+<main><p>This original sample is for testing keyboard navigation, persistent annotations and drawings on a local HTML file. It does not load any network resources.</p>
+<section id="bounded-work"><h2>Bounded work</h2><p><strong>Quota keeps work bounded.</strong> A queue admits a job only when the required resources are available. This passage should keep its highlight after a reload.</p><p>Separate reading from editing. Notes and drawing notebooks belong in the Study Keys library. The saved HTML source stays unchanged.</p><button type="button" id="change-layout">Insert a paragraph before the passage</button></section>
+<section id="review"><h2>Review questions</h2><p>Which resource limits the work? What happens when a job cannot fit? Save your reasoning alongside this page.</p><aside>Use a drawing notebook to connect the queue, the admission decision and the worker pool.</aside><p><label for="scratch">Temporary page input (does not save)</label><input id="scratch" placeholder="Website text fields keep their own keys"></p></section>
+<section><h2>Further reading</h2><p>Open the <a href="Second%20Sample.htm#comet">second HTML sample</a> using link labels. Search open tabs for its distinct phrase, then use the jumplist to return.</p></section></main>
+<footer><p>End of the disposable HTML test document.</p></footer>
+<script>document.querySelector('#change-layout').addEventListener('click',()=>{const p=document.createElement('p');p.textContent='A new paragraph moves the passage without changing its words.';document.querySelector('#bounded-work h2').after(p);});</script>
+</body></html>

@@ -1,4 +1,4 @@
-import {COLORS,pageKey} from './core.js';
+import {COLORS,pageKey,pageSource} from './core.js';
 import {request} from './transport.js';
 const $=s=>document.querySelector(s);
 for(const selector of ['#filter-color','#color'])for(const c of COLORS){const option=document.createElement('option');option.value=c.id;option.textContent=c.label;$(selector).append(option);}
@@ -14,13 +14,13 @@ function render(){
   $('#result-count').textContent=`${filtered.length} ${trash?'archived':'saved'} annotations`;const list=$('#cards');list.replaceChildren();
   const visibleDrawings=trash||selectedColor?[]:drawings.filter(d=>!filter||[d.title,d.url].join(' ').toLowerCase().includes(filter.toLowerCase()));
   $('#result-count').textContent+=visibleDrawings.length?' · '+visibleDrawings.length+' notebooks':'';
-  for(const drawing of visibleDrawings){const card=node('article',null,'card');card.style.setProperty('--accent','#b6d3bb');const link=node('a',drawing.title||new URL(drawing.url).hostname,'page-link');link.href=drawing.url;link.target='_blank';link.rel='noopener noreferrer';card.append(node('span','Drawing notebook','tag'),link,node('p',new URL(drawing.url).hostname,'origin'),node('p','Open this page, then press Space d n to continue drawing.','note'),node('time',new Date(drawing.updatedAt).toLocaleString()));list.append(card);}
+  for(const drawing of visibleDrawings){const card=node('article',null,'card');card.style.setProperty('--accent','#b6d3bb');const link=node('a',drawing.title||pageSource(drawing.url),'page-link');link.href=drawing.url;link.target='_blank';link.rel='noopener noreferrer';card.append(node('span','Drawing notebook','tag'),link,node('p',pageSource(drawing.url),'origin'),node('p','Open this page, then press Space d n to continue drawing.','note'),node('time',new Date(drawing.updatedAt).toLocaleString()));list.append(card);}
   if(!filtered.length&&!visibleDrawings.length){const empty=node('div',null,'empty');empty.append(node('div','⌁','empty-icon'),node('h2',filter?'Nothing matches yet':'Make an idea your own'),node('p',filter?'Try another word, color or page name.':'On a website, press v, choose the start and end labels, then 1–6. Your highlights and notes will appear here.'));list.append(empty);return;}
   for(const item of filtered){
     const card=node('article',null,'card');card.style.setProperty('--accent',COLORS.find(c=>c.id===item.color).hex);
     const meta=node('div',null,'meta');meta.append(node('span',COLORS.find(c=>c.id===item.color).label,'tag'),node('time',new Date(item.updatedAt).toLocaleDateString()));
-    const heading=node('a',item.page.title||new URL(item.page.url).hostname,'page-link');heading.href=pageKey(item.page.url);heading.target='_blank';heading.rel='noopener noreferrer';
-    const origin=node('p',new URL(item.page.url).hostname,'origin');card.append(meta,heading,origin);
+    const heading=node('a',item.page.title||pageSource(item.page.url),'page-link');heading.href=pageKey(item.page.url);heading.target='_blank';heading.rel='noopener noreferrer';
+    const origin=node('p',pageSource(item.page.url),'origin');card.append(meta,heading,origin);
     if(item.anchor)card.append(node('blockquote',item.anchor.quote));
     if(item.note)card.append(node('p',item.note,'note'));
     const actions=node('div',null,'actions');actions.append(button('Edit note',()=>edit(item)),button(trash?'Restore':'Move to trash',()=>archive(item)));card.append(actions);list.append(card);

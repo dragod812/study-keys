@@ -4,7 +4,7 @@ import {available,label} from './dom.js';
 // Executable pseudo-links and embedded payloads are not useful shareable URLs.
 export function copyableURL(raw,base) {
   if(!raw?.trim())return null;
-  try{const url=new URL(raw,base);return ['http:','https:','mailto:','tel:','sms:','ftp:'].includes(url.protocol)?url.href:null;}catch{return null;}
+  try{const url=new URL(raw,base);if(url.protocol==='file:')return new URL(base).protocol==='file:'&&!url.host?url.href:null;return ['http:','https:','mailto:','tel:','sms:','ftp:'].includes(url.protocol)?url.href:null;}catch{return null;}
 }
 function copyAvailable(target) {
   return available(target)&&!target.closest('[contenteditable]:not([contenteditable="false"]),[data-keyboard-owned]')&&(!target.checkVisibility||target.checkVisibility({opacityProperty:true,visibilityProperty:true}));
