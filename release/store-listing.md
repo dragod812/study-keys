@@ -2,7 +2,7 @@
 
 Publisher: Sidharth Padhee
 Visibility: Public
-Category: Tools / Workflow & Planning (closest available category)
+Category: Education
 Language: English (United States)
 Support: https://github.com/dragod812/study-keys/issues
 Homepage: https://dragod812.github.io/study-keys/
@@ -64,3 +64,8 @@ This beta requires macOS or Linux, Chrome 131+, Python 3.11+, and Git. No login 
 10. The library page offers JSON backup/import and Trash recovery. Private browsing and restricted Chrome pages are not part of this beta.
 
 No credentials are needed. If the helper is unavailable, the setup page shows the error and writes fail visibly. To remove the integration, remove the com.studykeys.local.json native-host registration and ~/.study-keys/.integration after preserving your library. Uninstalling the extension does not delete the local library.
+
+## Store item
+
+ID: jcjililghkknjbifgcnnkipiblmmmhid
+Data disclosures: Web history (saved page identifiers), User activity (keyboard commands and saved scroll marks), Website content (selected text, notes and drawings); processed and stored locally. No remote code.

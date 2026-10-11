@@ -1,0 +1,2 @@
+b84da060dc6a60db1beb45ae6c8e8ea59911747744de23cfd50f808727e63014  study-keys-chrome.zip
+56f88eb625879f61f24e2ee3fed026d6aba8fa2d99612044538434cb94e740f5  study-keys-local-helper.zip
