@@ -1,0 +1,23 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Quiet navigation · Study Keys test</title><link rel="stylesheet" href="/highlights.css"><style>body{font:18px/1.8 system-ui;max-width:850px;margin:40px auto;padding:20px;background:#f7f7ef;color:#243d34}button{font:inherit;padding:8px;margin:5px;border:1px solid #b7c5b9;border-radius:8px;background:#fff}output{display:block;padding:15px;background:#e7efdf}h1{font-size:32px}#warnings{font:14px/1.6 monospace}</style></head><body>
+<h1>Quiet navigation</h1><p>Test navigation while annotation requests are in flight. Old-page refresh failures must not interrupt reading.</p>
+<button id="late">Navigate with an old refresh pending</button><button id="race">Navigate and refresh immediately</button><button id="back">Return to first page</button><button id="failure">Simulate library failure</button>
+<output id="requests" aria-label="Refresh status">No requests yet</output><article><h2 id="route">First page</h2><p id="passage">Keep the page quiet during normal navigation. Notes stay attached to their original article.</p></article>
+<h2>Notification history</h2><ol id="warnings"></ol>
+<script>
+let nextFailure='',reads=0;const nativeFetch=window.fetch.bind(window);
+window.fetch=async(url,options)=>{
+ if(url==='/test-api'&&JSON.parse(options.body).type==='page'){
+  const message=JSON.parse(options.body),kind=nextFailure;nextFailure='';reads++;
+  document.querySelector('#requests').textContent=reads+' reads · '+message.url+(kind?' · simulated '+kind:'');
+  if(kind){await new Promise(r=>setTimeout(r,120));return new Response(JSON.stringify({ok:false,error:kind==='library'?'Local library disconnected':'The page changed. Please try again.',code:kind==='library'?'UNAVAILABLE':'PAGE_CHANGED'}),{headers:{'Content-Type':'application/json'}});}
+ }
+ return nativeFetch(url,options);
+};
+const refresh=()=>window.dispatchEvent(new Event('focus'));
+function navigate(second){history.pushState({},'',second?'#/second':'#/first');document.querySelector('#route').textContent=second?'Second page':'First page';document.querySelector('#passage').textContent=second?'This second page has its own annotations. Stale reads must never carry old highlights here.':'Keep the page quiet during normal navigation. Notes stay attached to their original article.';}
+document.querySelector('#late').onclick=()=>{nextFailure='navigation';refresh();navigate(true);};
+document.querySelector('#race').onclick=()=>{navigate(true);nextFailure='navigation';refresh();};
+document.querySelector('#back').onclick=()=>{navigate(false);refresh();};
+document.querySelector('#failure').onclick=()=>{nextFailure='library';refresh();};
+const observe=new MutationObserver(()=>{const toast=document.querySelector('[data-study-keys]')?.shadowRoot?.querySelector('.toast');if(!toast)return;observe.disconnect();let last='';new MutationObserver(()=>{if(!toast.hidden&&toast.textContent!==last){last=toast.textContent;const li=document.createElement('li');li.textContent=last;document.querySelector('#warnings').append(li);}}).observe(toast,{subtree:true,childList:true,characterData:true,attributes:true});});observe.observe(document.documentElement,{subtree:true,childList:true});
+</script><script src="/content.js"></script></body></html>

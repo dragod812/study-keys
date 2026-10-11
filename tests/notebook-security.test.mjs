@@ -12,6 +12,9 @@ test('embedded notebooks require a session for the correct tab and cannot access
  installed({reason:'install'});assert.deepEqual(created,[{url:own+'setup.html'}]);
  assert.equal((await call({type:'storageStatus'},{url:own+'setup.html'})).ok,true);
  const parent={url:'https://example.com/article',tab:{id:1,windowId:1},frameId:0};
+ // Passive reads receive a typed navigation race; writes still reject another page.
+ for(const type of ['page','save']){const mismatch=await call({type,url:'https://other.example/'},parent);assert.equal(mismatch.ok,false);assert.equal(mismatch.code,'PAGE_CHANGED');}
+ assert.equal((await call({type:'page',url:parent.url},parent)).value.items.length,0);
  let r=await call({type:'openNotebook',url:parent.url,title:'Article'},parent);assert.equal(r.ok,true);const session=r.value.session;
  const iframe={url:own+'notebook.html?session='+session,tab:{id:1},frameId:2};
  assert.equal((await call({type:'notebookRequest',action:'drawingLoad',session},iframe)).ok,true);

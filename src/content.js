@@ -9,6 +9,7 @@ import uiCSS from './ui.css';
 import {capturePosition,restorePosition} from './mark-dom.js';
 import {notebookWindow} from './notebook-window.js';
 import {keyboardBoundary} from './key-events.js';
+import {createPageLoader} from './page-loader.js';
 
 // The isolated content-script world owns the state. No page globals, eval,
 // network requests, HTML injection or changes to the site's text nodes.
@@ -25,7 +26,7 @@ function start() {
   function button(text,run,cls){const n=el('button',text,cls);n.type='button';n.onclick=run;return n;}
   const badge=button('Study Keys · v select · ? help',help,'badge'),toast=el('div',null,'toast'),layer=el('div'),which=el('div',null,'which');
   badge.setAttribute('aria-label','Study Keys keyboard help');toast.setAttribute('role','status');toast.setAttribute('aria-live','polite');toast.hidden=which.hidden=true;surface.append(badge,toast,layer,which);
-  let url=pageKey(location.href),items=[],enabled=true,insert=false,loading=0,index=null,resolved=new Map();
+  let url=pageKey(location.href),items=[],enabled=true,insert=false,index=null,resolved=new Map();
   let dialog=null,dialogKey=null,previousFocus=null,closeGuard=null,mode=null,bar=null,labels=[],prefix='',startWord=null,pending=null;
   let sequence=[],sequenceTimer,toastTimer,renderTimer,scrollFrame,hover=null,lastPane=null,lastPicker=null,findResults=[],findAt=-1;
   let disposed=false,routeHref=location.href,observed=null;
@@ -70,11 +71,15 @@ function start() {
     clearMode();
   }
   function selectedIndex(){index=buildIndex();const selection=fromSelection(index);return selection?{...selection,anchor:makeAnchor(index.text,selection.start,selection.end)}:null;}
-  async function load(){
-    const ticket=++loading,key=url;
-    try{const data=await request({type:'page',url:key});if(ticket!==loading||key!==url)return;items=data.items;enabled=data.enabled;updateBadge();restore();}
-    catch(e){if(ticket===loading)say(e.message);}
+  function enterPage(next){
+    if(next===url)return false;
+    url=next;items=[];annotationAt=-1;clearMode();findResults=[];
+    clearTimeout(toastTimer);toast.hidden=true;
+    restore();if(drawer)renderDrawer();return true;
   }
+  const load=createPageLoader({request,href:()=>location.href,enter:enterPage,
+    apply:data=>{items=data.items;enabled=data.enabled;updateBadge();restore();},
+    report:error=>say(error.message)});
   function restore(){
     resolved.clear();for(const c of COLORS)paint(c.id,[]);
     if(!items.some(i=>i.anchor&&!i.archived))return;
@@ -176,6 +181,7 @@ function start() {
     makeBar(selectionMode.toUpperCase()+' · Choose start word','Type a word label · Space: paragraphs / sections / page · ↓ ↑ scroll · Esc cancels');rebuildLabels();updateBadge();trackLayout();
   }
   function refreshSelection(force=false){
+    if(pageKey(location.href)!==url){load();return false;}
     if(!selecting())return false;
     if(!force&&!indexDirty)return true;
     const next=buildIndex(),rebase=spanRebaser(index,next);
@@ -562,7 +568,7 @@ function start() {
   });
   observer.observe(document.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['open','hidden','aria-expanded','aria-hidden','class','style']});
   setInterval(()=>{
-    if(location.href!==routeHref){routeHref=location.href;const next=pageKey(location.href);if(next!==url){url=next;clearMode();findResults=[];items=[];annotationAt=-1;restore();if(drawer)renderDrawer();load();}}
+    if(location.href!==routeHref){routeHref=location.href;if(enterPage(pageKey(location.href)))load();}
     if(document.body!==observed){observed=document.body;observer.disconnect();if(observed)observer.observe(observed,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['open','hidden','aria-expanded','aria-hidden','class','style']});}
   },700);
   watch(()=>{if(!dialog&&!mode)load();});

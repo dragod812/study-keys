@@ -6,6 +6,6 @@ export async function request(message){
   if(message.action==='open'){message.newTab?window.open(message.target,'_blank'):location.assign(message.target);return {};}
   if(message.action==='back')history.back();else if(message.action==='forward')history.forward();else throw Error('Browser tab switching is available only in the installed Chrome extension.');return {};
  }
- const r=await fetch('/test-api',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(message)}),data=await r.json();if(!data.ok)throw Error(data.error);return data.value;
+ const r=await fetch('/test-api',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(message)}),data=await r.json();if(!data.ok)throw Object.assign(Error(data.error),{code:data.code});return data.value;
 }
 export function watch(callback){window.addEventListener('focus',callback);}

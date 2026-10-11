@@ -39,7 +39,7 @@ chrome.runtime.onMessage.addListener((m,sender,respond)=>{
     const trusted=['library.html','panel.html','popup.html','setup.html'].some(p=>sender.url?.split(/[?#]/)[0]===chrome.runtime.getURL(p));
     if(!trusted) {
       if(!sender.tab||sender.frameId!==0||!['page','save','enabled','openLibrary','navigate','openNotebook','marks','setMark','getMark','gotoMark'].includes(m?.type))throw Error('Request not available to page scripts.');
-      if(!['openLibrary','navigate'].includes(m.type)&&pageKey(m.url)!==pageKey(sender.url))throw Error('The page changed. Please try again.');
+      if(!['openLibrary','navigate'].includes(m.type)&&pageKey(m.url)!==pageKey(sender.url))throw Object.assign(Error('The page changed. Please try again.'),{code:'PAGE_CHANGED'});
     }
     if(m.type==='gotoMark') {
       const mark=await repository({type:'getMark',url:m.url,name:m.name});
@@ -75,6 +75,6 @@ chrome.runtime.onMessage.addListener((m,sender,respond)=>{
     }
     const result=await repository(m);
     return m.type==='page'?{...result,storage:await storage.status()}:result;
-  })().then(value=>respond({ok:true,value}),error=>respond({ok:false,error:error.message}));
+  })().then(value=>respond({ok:true,value}),error=>respond({ok:false,error:error.message,code:error.code}));
   return true;
 });
