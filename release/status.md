@@ -1,17 +1,27 @@
 # Study Keys release status
 
-- Version: 1.6.0
+- Version: 1.6.1
 - Publisher name: Sidharth Padhee (saved in Web Store publisher settings)
 - Public repository: https://github.com/dragod812/study-keys
-- Beta release: https://github.com/dragod812/study-keys/releases/tag/v1.6.0
+- Beta release: https://github.com/dragod812/study-keys/releases/tag/v1.6.1
 - Website: https://dragod812.github.io/study-keys/
 - Privacy: https://dragod812.github.io/study-keys/privacy.html
 - Chrome Web Store draft ID: jcjililghkknjbifgcnnkipiblmmmhid
 - Submitted: package, description, Education category, English (United States), icon, 3 screenshots, promo tile, homepage, support, privacy/permission explanations, local-data disclosures, reviewer instructions.
 - Distribution: Public, free of charge, all regions.
-- Google confirmed 1.6.0 submission: Pending Review. Publisher contact email verified. Automatic publication after approval is enabled.
+- Google confirmed 1.6.1 submission: Pending Review. Publisher contact email verified. Automatic publication after approval is enabled.
 - Google flagged broad HTTP/HTTPS access for possible in-depth review. This access supports the advertised navigation and highlight restoration on visited web pages.
 - Submission date: 2026-10-11 UTC. The listing is not live on the Web Store until approved.
+
+## Version 1.6.1 verification and publication
+
+`Space h` toggles the native notes sidebar and the fallback drawer. Native × close/reopen and focus within the sidebar stay synchronized; an unfinished note is protected from shortcut dismissal. 92 JavaScript tests and installed-Chrome/Codex-browser journeys passed; see [sidebar toggle verification](sidebar-toggle-verification.md). No permissions or dependencies changed.
+
+GitHub main and the public v1.6.1 release contain the fix. The 475-file extension ZIP matches the tested build, with no fixtures or private evidence. Both downloaded release assets match `SHA256SUMS-1.6.1.txt`. The website deployment succeeded and its release links and shortcut description show 1.6.1.
+
+The earlier 1.6.0 review was canceled to submit the replacement. Google verified package version 1.6.1 and saved the updated listing and reviewer instructions. Submission confirmed **Pending Review** on October 11, 2026 (America/Los_Angeles), with automatic publication after approval. The public Web Store listing is not live until Google approves it.
+
+The local unpacked Chrome extension was already reloaded and verified as 1.6.1. Refresh existing reading tabs when unsaved website edits are safe. The companion implementation is unchanged from 1.6.0; an existing 1.6.0 helper does not require an update.
 
 ## Version 1.6.0 verification and publication
 
