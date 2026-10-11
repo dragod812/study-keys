@@ -17,7 +17,7 @@
 
 41 JavaScript tests passed. Codex in-app browser checks verified quiet navigation with an old refresh pending, immediate refresh after a route change, silent sender-context retry recovery, and navigation during selection. A simulated current-page library failure remained visible. Page ownership checks still reject cross-page writes. No permissions or dependencies changed.
 
-The Web Store package was verified as 1.4.2. The earlier 1.4.1 review was canceled and Google confirmed Pending Review for 1.4.2 with automatic publication after approval enabled. GitHub release asset hashes match the packaged files. The local unpacked build is rebuilt; Chrome reload was interrupted by active use and remains to be confirmed. Existing tabs must be reloaded after the extension update.
+The Web Store package was verified as 1.4.2. The earlier 1.4.1 review was canceled and Google confirmed Pending Review for 1.4.2 with automatic publication after approval enabled. GitHub release asset hashes match the packaged files. The local unpacked extension was reloaded successfully in Chrome; its details showed version 1.4.2 and “Reloaded”. Existing tabs must be refreshed once to activate the new content script.
 
 ## Version 1.4.1 verification
 
