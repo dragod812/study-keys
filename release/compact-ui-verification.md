@@ -34,4 +34,4 @@ reload through its extension settings.
 
 The browser preview runs alongside the old installed extension in Insert mode;
 the older gray badge in preview screenshots belongs to that installed copy.
-No GitHub push or Web Store submission was made for this UI change.
+The subsequent 1.6.0 release pass pushed these changes to GitHub and submitted the package to the Web Store. See [release status](status.md) for the verified publication state and remaining local reload limitation.

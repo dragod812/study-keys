@@ -9,13 +9,19 @@
 - Chrome Web Store draft ID: jcjililghkknjbifgcnnkipiblmmmhid
 - Submitted: package, description, Education category, English (United States), icon, 3 screenshots, promo tile, homepage, support, privacy/permission explanations, local-data disclosures, reviewer instructions.
 - Distribution: Public, free of charge, all regions.
-- 1.6.0 package verified locally; replacing the earlier 1.5.0 submission. Final publication status will be recorded after the dashboard confirms submission.
+- Google confirmed 1.6.0 submission: Pending Review. Publisher contact email verified. Automatic publication after approval is enabled.
 - Google flagged broad HTTP/HTTPS access for possible in-depth review. This access supports the advertised navigation and highlight restoration on visited web pages.
 - Submission date: 2026-10-11 UTC. The listing is not live on the Web Store until approved.
 
-## Version 1.6.0 verification
+## Version 1.6.0 verification and publication
 
 84 JavaScript tests and 26 native helper tests pass. Browser regression checks, package integrity and bundled skill installation passed. See [release verification](release-1.6.0-verification.md) for results and installed-browser limitations. The release includes compact controls, local Markdown/HTML, reading alignment, the optional MCP companion and installable Codex skill.
+
+GitHub main contains the release implementation, skill, installers and website. The public v1.6.0 release contains both ZIPs and SHA256 sums; downloading both assets verified their hashes. GitHub Pages deployment succeeded.
+
+The earlier 1.5.0 review was canceled through the listing menu. Google accepted package version 1.6.0, the updated description, MCP/local-file permission explanations and reviewer instructions. Submission confirmed **Pending Review** on 2026-10-11 UTC, with automatic publication after approval selected. The extension is not live on the Web Store until Google approves it.
+
+The final compact build is in the local dist folder. A reload of the installed Chrome copy could not be completed because the browser-control interface timed out; reload the unpacked extension and safe-to-refresh reading tabs to activate it locally. This limitation is separate from the successful Web Store submission.
 
 ## Version 1.5.0 verification and publication
 
