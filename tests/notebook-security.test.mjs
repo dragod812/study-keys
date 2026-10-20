@@ -39,6 +39,24 @@ test('embedded notebooks require a session for the correct tab and cannot access
  assert.equal((await call({type:'page',url:'file:///etc/passwd'},{...local,url:'file:///etc/passwd'})).ok,false);
  }
  const saved=await call({type:'notebookRequest',action:'drawingLoad',session},iframe);assert.equal(saved.value.drawing.url,parent.url);
+ // A single content script survives article-to-article navigation. Every
+ // operation must bind to the new article, including navigation and notebook
+ // sessions, without letting a stale request overwrite the previous article.
+ const nextURL='https://example.com/second-article',spa={...parent,documentId:'same-document'};
+ chrome.tabs.get=async()=>({...parent.tab,url:nextURL});
+ chrome.tabs.sendMessage=async(id,m,options)=>{assert.equal(id,1);assert.equal(m.type,'pageIdentity');assert.equal(options.documentId,spa.documentId);return {url:nextURL};};
+ assert.equal((await call({type:'save',url:nextURL,title:'Second article',item:{id:'spa-note',color:'yellow',note:'Keep this on the second article'},base:null},spa)).ok,true);
+ assert.equal((await call({type:'page',url:nextURL},spa)).value.items[0].note,'Keep this on the second article');
+ assert.equal((await call({type:'page',url:parent.url},parent)).value.items.length,0);
+ assert.equal((await call({type:'save',url:parent.url,item:{id:'stale',color:'red',note:'Wrong route'},base:null},spa)).code,'PAGE_CHANGED');
+ const newSession=(await call({type:'openNotebook',url:nextURL,title:'Second article'},spa)).value.session;
+ const newFrame={...iframe,url:own+'notebook.html?session='+newSession};
+ assert.equal((await call({type:'notebookRequest',action:'drawingSave',session:newSession,scene,base:null},newFrame)).ok,true);
+ assert.equal((await call({type:'notebookRequest',action:'drawingLoad',session:newSession},newFrame)).value.drawing.url,nextURL);
+ assert.equal((await call({type:'notebookRequest',action:'drawingLoad',session},iframe)).value.drawing.url,parent.url);
+ assert.equal((await call({type:'notebookRequest',action:'drawingLayout',session:newSession,layout:{placement:'right'}},spa)).ok,true);
+ assert.equal((await call({type:'notebookRequest',action:'drawingLayout',session,layout:{placement:'left'}},spa)).code,'PAGE_CHANGED');
+ assert.equal((await call({type:'navigation',url:nextURL,action:'checkpoint',jump:true,location:{url:nextURL,title:'Second article',position:{x:0,y:400,pageX:0,pageY:400,pane:null,anchor:null,viewportY:0}}},spa)).ok,true);
  // Marks reuse an open matching tab, prefer the sender when duplicates exist,
  // and reopen a closed page before restoring its position.
  const markPosition={x:0,y:500,pageX:0,pageY:500,pane:null,anchor:null,viewportY:0};

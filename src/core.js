@@ -16,7 +16,7 @@ export function hintCodes(count) {
   return Array.from({length:count},(_,i)=>{let code='';for(let n=0;n<width;n++){code=ALPHABET[i%ALPHABET.length]+code;i=Math.floor(i/ALPHABET.length);}return code;});
 }
 export function keyOf(e) {
-  if(e.metaKey||e.altKey||e.isComposing||['Dead','Process'].includes(e.key))return null;
+  if(e.metaKey||e.altKey||e.isComposing||['Dead','Process','Shift','Control','Alt','Meta','AltGraph','CapsLock'].includes(e.key))return null;
   return e.ctrlKey?'Ctrl-'+e.key.toLowerCase():e.key===' '?'Space':e.key;
 }
 // Only local Markdown and HTML documents are supported on file://. Never fetch a path,

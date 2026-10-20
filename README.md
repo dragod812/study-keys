@@ -46,7 +46,7 @@ Drawings appear in **All websites** and are included in **Export backup**, along
 
 ## Vim modes and marks
 
-The corner badge shows **NORMAL**, **VISUAL**, **HIGHLIGHT**, **MARK** or **INSERT**. Normal mode is the default. Press **v**, then type start/end word labels to select a passage. Visual mode lets you copy, annotate or change the selection. **h** opens Highlight mode with the six colors; **Shift+V** starts a new selection in Highlight mode. **Esc** returns from Highlight to Visual, then to Normal. While entering labels, Escape clears the typed prefix or backs out one stage. In **Insert mode**, every key—including Escape—goes to the website. **Ctrl+C** is the sole exit shortcut and returns to Normal, leaving a focused website field without changing its text. Cmd+C, modified shortcuts and IME remain untouched. Outside Insert mode, website editors keep their own keys.
+The corner badge shows **NORMAL**, **VISUAL**, **HIGHLIGHT**, **MARK** or **INSERT**. Normal mode is the default. Press **v**, then type start/end word labels to select a passage. Visual mode lets you copy, annotate or change the selection. **h** opens Highlight mode with the six colors; **Shift+V** starts a new selection in Highlight mode. **Esc** returns from Highlight to Visual, then to Normal. While entering labels, Escape clears the typed prefix or backs out one stage. In **Insert mode**, every key—including Escape—goes to the website. **Ctrl+C** is the sole exit shortcut and returns to Normal, leaving a focused website field without changing its text. Cmd+C, modified shortcuts and IME remain untouched. Ctrl+C also returns to Normal from a website field focused directly, through gi, or with Tab. Other keys in website editors keep their native behavior.
 
 Press **ma** to mark the current position on this page and **'a** (or backtick then a) to return. Any lowercase letter works. Press **mA** to save a global mark and **'A** to switch back from another page. Uppercase letters (Shift or Caps Lock) identify global marks. An existing tab for that URL is reused; if it is closed, Study Keys opens it. **Space m** searches the local and global marks.
 
@@ -93,10 +93,13 @@ Marks preserve horizontal and vertical scroll, including independent reading pan
 | `H` / `L` | Back / forward in tab history |
 | `J` / `K` | Next / previous browser tab |
 | `g0` / `g$` | First / last browser tab in the window |
-| `gi` | Focus the first editable field |
+| `gi` / `2gi` / `3gi` | Focus the first / second / third editable field, including fields below the fold |
+| `gI` (`g`, then Shift+i) | Label visible text fields; type a label to focus that field |
+| `Tab` / `Shift+Tab` in a field | Native next / previous control |
+| `Space p p` | Play / pause the current page’s video or audio |
 | `yy` | Copy the current URL (where the browser permits clipboard writes) |
 | `i` | Insert mode: pass keys through, including Escape |
-| `Ctrl+C` in Insert mode | Return to Normal; leave the focused website field without changing its text |
+| `Ctrl+C` in Insert mode or a website field | Return to Normal; leave the focused field without changing its text |
 | `?` | Searchable guide and persistent per-site enable setting |
 
 New in the 1.5 navigation build:
@@ -127,9 +130,11 @@ Search results and the 100-entry reading jumplist are session-only. Cross-tab se
 
 **Optional native vertical-tabs toggle:** update the helper, then opt in with `python3 install.py --extension-id YOUR_EXTENSION_ID --enable-vertical-tabs`. On macOS, Chrome needs Accessibility access in System Settings. The fixed action operates only while Google Chrome is foreground and only clicks its native **Expand Tabs / Collapse Tabs** button; enable vertical tabs in Chrome first. It never falls back to opening the Study Keys notes panel. Linux and Codex’s in-app browser have no supported native toggle in this build. To disable the optional integration, remove `~/.study-keys/.integration/vertical-tabs-enabled`. The default helper setup does not enable this action.
 
-On media websites, Normal-mode commands such as **Space**, **v → Space**, and **f** belong to Study Keys for the entire key press, including release. They do not also trigger the page’s playback or fullscreen shortcuts. To use website shortcuts, press **i** for Insert mode; **Ctrl+C** returns to Normal. Focused native media controls and website editors keep their own keys. **Reload existing tabs after updating** so the early keyboard handler is installed before site listeners.
+On media websites, Normal-mode commands such as **Space**, **v → Space**, and **f** belong to Study Keys for the entire key press, including release. They do not also trigger the page’s playback or fullscreen shortcuts. Use **Space p p** to play or pause the current page’s media without leaving Normal mode. A large paused player takes precedence over muted hover previews; playing audible media remains available when scrolled out of view. Fullscreen players retain the shortcut menu and labels. To use website shortcuts such as YouTube’s Space or k, press **i** for Insert mode; **Ctrl+C** returns to Normal. Focused native media controls and website editors keep their own keys. **Reload existing tabs after updating** so the early keyboard handler is installed before site listeners.
 
-`Space` shows an immediate command menu. Normal Tab navigation remains available. Inputs, editable regions, editor widgets, media controls, IME and Cmd/Alt shortcuts keep their native behavior. Inside a site-owned modal, Study Keys yields to the site.
+On Hello Interview, Study Keys follows article changes without requiring a reload between articles. Use **s** to find an article or an expandable solution, **gi** / **gI** for comment and search fields, and **Ctrl+C** to return to reading. The site's **Cmd+K** search keeps working. Section jumps, saved highlights and the notebook use the current article URL; an already-open notebook stays attached to the article where it was opened until you close it.
+
+`Space` shows an immediate command menu. Normal Tab navigation remains available. Inputs, editable regions, editor widgets, media controls, IME and Cmd/Alt shortcuts keep their native behavior. Inside a site-owned modal, Study Keys yields to the site until you explicitly return to Normal with Ctrl+C. Focusing another field returns its typing keys to the website.
 
 The mode pill and shortcut menus stay in the lower-right corner. Longer menus use two compact columns; quick spots share a `1–9` hint. Selection controls and notifications are smaller, and `?` opens a searchable corner guide with the full shortcut descriptions. Hover over the mode pill for saved counts and help.
 
@@ -284,3 +289,9 @@ The skill reads the page and existing work, adds selective highlights and notes,
 Tools cover page/selection reading, observed native-details expansion, annotation creation/edit/archive/restore, notebook read/open/render, element patches, atomic study batches, run receipts and guarded undo. Changes use the existing disk transaction path and appear in the usual sidebar and canvas. A healthy open notebook is saved and briefly paused before changes. Source drift, ambiguous quotes and stale revisions fail without a partial batch. Retrying an identical request ID does not duplicate work.
 
 Run `npm test` and `npm run test:native` for unit, persistence, installer and real MCP/native transport tests. The wire test uses a fixture DOM adapter; installed Chrome checks are recorded in `release/mcp-verification.md`. See `native/setup-README.md` for setup/removal and `design/study-keys-mcp.md` for the broader roadmap. This release's MCP focuses on reading, annotations and drawings; it does not yet expose every tab/group/navigation command.
+
+### Field and media navigation (1.6.2)
+
+Use `gI` when you can see several text boxes and want to choose one directly. Use a count such as `3gi` to reach a field below the fold. Hidden, disabled, read-only and non-text inputs are skipped; rich-text editors and open shadow-root fields are supported. `Ctrl+C` leaves the focused website field with its contents intact. Study Keys’ own note editors and embedded drawing frames keep their existing save/close controls.
+
+`Space p p` controls one HTML video/audio element in the current page; cross-origin embedded players and other tabs are outside this shortcut’s scope. Normal-mode shortcut keydown, keypress and keyup events remain isolated from website player shortcuts. Shift and Caps Lock no longer cancel a command prefix before an uppercase key.

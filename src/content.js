@@ -15,6 +15,8 @@ import {capture,passages,restoreReading} from './navigation-dom.js';
 import {rankEntries} from './navigation-core.js';
 import {readAgentPage,agentSelection,revealAgentSection} from './agent-dom.js';
 import {shortcutHints} from './shortcut-hints.js';
+import {editableFields,activeElement,returnToNormalKey} from './focus.js';
+import {toggleMedia} from './media.js';
 
 // The isolated content-script world owns the state. No page globals, eval,
 // network requests, HTML injection or changes to the site's text nodes.
@@ -35,7 +37,7 @@ function start() {
   let dialog=null,dialogKey=null,previousFocus=null,closeGuard=null,mode=null,bar=null,labels=[],prefix='',startWord=null,pending=null;
   let sequence=[],sequenceTimer,toastTimer,renderTimer,scrollFrame,hover=null,lastPane=null,lastPicker=null,findResults=[],findAt=-1;
   let disposed=false,routeHref=location.href,observed=null;
-  let copySession=null,normalCount='';
+  let copySession=null,normalCount='',normalInSiteDialog=false;
   let drawer=null,drawerSearch='',annotationAt=-1,newTabHints=false;
   let writingHighlight=false,selectionMode='visual',markMode=null;
   let indexDirty=false,wordCache=[],nextWordCode=null,layoutTimer=0,scopeMenu=false,blockKind=null;
@@ -88,7 +90,7 @@ function start() {
   function selectedIndex(){index=buildIndex();const selection=fromSelection(index);return selection?{...selection,anchor:makeAnchor(index.text,selection.start,selection.end)}:null;}
   function enterPage(next){
     if(next===url)return false;
-    url=next;items=[];annotationAt=-1;clearMode();findResults=[];
+    url=next;items=[];annotationAt=-1;normalInSiteDialog=false;clearMode();findResults=[];
     clearTimeout(toastTimer);toast.hidden=true;
     restore();if(drawer)renderDrawer();return true;
   }
@@ -287,10 +289,10 @@ function start() {
     target.scrollIntoView({block:'center',inline:'nearest',behavior:'instant'});target.focus({preventScroll:true});lastPane=scrollPane(target);
     if(!target.matches('input:not([type=submit]):not([type=button]):not([type=checkbox]):not([type=radio]),textarea,select,[contenteditable]'))target.click();
   }
-  function linkHints(inNewTab=false){
-    clearMode();newTabHints=inNewTab;const found=targets(true).filter(t=>!inNewTab||t.matches('a[href]')),codes=hintCodes(found.length);mode='links';
-    labels=found.map((target,i)=>{const rect=target.getBoundingClientRect(),tag=el('span',codes[i],'hint link');tag.style.left=Math.max(2,Math.min(innerWidth-45,rect.left))+'px';tag.style.top=Math.max(2,rect.top)+'px';layer.append(tag);return {target,code:codes[i],tag};});
-    makeBar('Open a visible control','Type its label · Esc cancels');if(!found.length)say('No visible controls. Press s to search the page.');
+  function linkHints(inNewTab=false,fieldsOnly=false){
+    clearMode();newTabHints=inNewTab;const found=fieldsOnly?editableFields(true):targets(true).filter(t=>!inNewTab||t.matches('a[href]')),codes=hintCodes(found.length);mode='links';
+    labels=found.map((target,i)=>{const rect=target.getBoundingClientRect(),tag=el('span',codes[i],'hint link');tag.style.left=Math.max(2,Math.min(innerWidth-45,rect.left))+'px';tag.style.top=Math.max(2,rect.top)+'px';tag.setAttribute('aria-label',codes[i]+': '+label(target));layer.append(tag);return {target,code:codes[i],tag};});
+    makeBar(fieldsOnly?'Focus a text field':'Open a visible control',fieldsOnly?'Type its label · Tab / Shift+Tab move between controls · Ctrl+C returns to Normal':'Type its label · Esc cancels');if(!found.length)say(fieldsOnly?'No visible text fields. Use gi or a count, such as 2gi, to focus a field farther down.':'No visible controls. Press s to search the page.');
   }
   function openPicker(title,entries,query='',remember=true,options={}){
     const box=openDialog(title);if(!box)return;
@@ -500,7 +502,9 @@ function start() {
     {keys:['K'],label:'Previous browser tab',run:()=>attempt(()=>request({type:'navigate',action:'previous'}))},
     {keys:['g','0'],label:'First browser tab',run:()=>attempt(()=>request({type:'navigate',action:'first'}))},
     {keys:['g','$'],label:'Last browser tab',run:()=>attempt(()=>request({type:'navigate',action:'last'}))},
-    {keys:['g','i'],label:'Focus the first editable field',run:()=>{const target=targets().find(t=>t.matches('input:not([type=button]):not([type=submit]):not([type=checkbox]):not([type=radio]),textarea'));if(target)activate(target);else say('No editable field found.');}},
+    {keys:['g','i'],label:'Focus a text field · gi first, 2gi second',run:(count=1)=>{const fields=editableFields(),target=fields[count-1];if(target){activate(target);say(`Field ${count} of ${fields.length} · Tab / Shift+Tab move · Ctrl+C returns to Normal`);}else say(fields.length?`Only ${fields.length} editable fields on this page. Use gI to choose a visible field.`:'No editable field found.');}},
+    {keys:['g','I'],label:'Label visible text fields · choose one to focus',run:()=>linkHints(false,true)},
+    {keys:['Space','p','p'],label:'Play / pause this page’s video or audio',hint:'Play / pause media',run:()=>attempt(async()=>say(await toggleMedia()))},
     {keys:['y','y'],label:'Copy the current URL',run:()=>attempt(async()=>{await navigator.clipboard.writeText(location.href);say('URL copied');})},
     {keys:['/'],label:'Find literal text · individual occurrences',run:navigation.literal},
     {keys:['n'],label:'Next text match',run:count=>attempt(()=>navigation.nextMatch(1,count))},
@@ -526,29 +530,29 @@ function start() {
       if(dialog&&keyOf(e)==='Escape'){consume(e);closeDialog();}
       return;
     }
-    // Insert mode gets first refusal, before editable fields, dialogs, selection
-    // shortcuts and Escape handling. Only the explicit exit chord is consumed.
-    if(insert){
-      if(keyOf(e)==='Ctrl-c'&&!e.shiftKey){
-        consume(e);insert=false;clearMode();
-        // End website text entry so the next navigation key really is Normal
-        // mode. Keep the field's text intact and retain its scroll pane.
-        if(!e.composedPath().includes(host)&&owned(e)){
-          const field=e.composedPath().find(n=>n instanceof HTMLElement);
-          if(field){lastPane=scrollPane(field);hover=lastPane;field.blur();}
-        }
-        say('Normal mode');
-      }
-      return;
+    // A client-side route may change between the periodic route checks and the
+    // next keystroke. Commands must use the article currently on screen.
+    if(enterPage(pageKey(location.href)))load();
+    // Ctrl+C is the deliberate handoff from website editing to navigation,
+    // whether entry began via i, gi, Tab or a mouse click. Never alter the draft.
+    const k=keyOf(e);
+    const inUI=e.composedPath().includes(host);
+    if(returnToNormalKey(e,{enabled,insert,owned:!inUI&&owned(e)})){
+      consume(e);insert=false;normalInSiteDialog=!!pageDialog();
+      const field=activeElement();
+      if(!inUI&&field&&field!==document.body){lastPane=scrollPane(field);hover=lastPane;field.blur();}
+      getSelection()?.removeAllRanges();
+      clearMode();mountOverlay();say('Normal mode');return;
     }
-    const k=keyOf(e);if(!k||e.defaultPrevented)return;
+    if(insert)return;
+    if(!k||e.defaultPrevented)return;
     if(dialog){if(k==='Escape'){consume(e);navigation.clearFind();closeDialog();}return;}
     if(k==='Escape'&&drawer&&!mode&&!sequence.length){consume(e);closeDrawer();return;}
     if(!enabled)return;
     if(owned(e))return;
     if(e.composedPath().includes(host)&&shadow.activeElement!==drawer)return;
     // Native/site dialogs own keys; they remain operable via ordinary Tab.
-    if(pageDialog())return;
+    if(pageDialog()&&!normalInSiteDialog)return;
     if(selecting()&&k!=='Escape'&&!refreshSelection(true)){consume(e);return;}
     if(k==='Escape'){normalCount='';navigation.clearFind();if(mode||markMode||sequence.length){consume(e);if(sequence.length){resetSequence();updateBadge();}else if(mode||markMode)cancel();}else{clearPreview();getSelection()?.removeAllRanges();}return;}
     if(markMode){consume(e);if(/^[a-zA-Z]$/.test(k)&&!e.repeat){const action=markMode;clearMode();if(action==='set')setMark(k);else jumpMark(k);}return;}
@@ -593,7 +597,17 @@ function start() {
     if(!e.defaultPrevented&&dialog&&active?.closest('dialog')===dialog)dialogKey?.(e);
   };
   document.addEventListener('pointerover',e=>{if(e.target instanceof Element&&!e.composedPath().includes(host))hover=e.target;},true);
-  document.addEventListener('focusin',e=>{if(!e.composedPath().includes(host)){lastPane=scrollPane(e.composedPath()[0]);hover=null;if(owned(e)){clearMode();}}},true);
+  document.addEventListener('focusin',e=>{if(!e.composedPath().includes(host)){lastPane=scrollPane(e.composedPath()[0]);hover=null;if(owned(e)){normalInSiteDialog=false;clearMode();}}},true);
+  function mountOverlay(){
+    const siteModal=pageDialog(),full=document.fullscreenElement;
+    if(!siteModal)normalInSiteDialog=false;
+    // Native modal/fullscreen top layers hide document siblings. Mount inside
+    // the layer only after the user explicitly hands navigation back to us.
+    const container=normalInSiteDialog&&siteModal?siteModal:full&&!full.matches('video,audio,iframe')?full:document.documentElement;
+    if(host.parentElement!==container)container.append(host);
+  }
+  document.addEventListener('fullscreenchange',()=>{mountOverlay();clearMode();});
+  document.addEventListener('close',mountOverlay,true);
   const scrolled=()=>{
     if(mode==='copy-links'){rebuildCopyLabels();return;}
     if(mode==='links'){clearMode();return;}
@@ -604,8 +618,9 @@ function start() {
   new ResizeObserver(()=>{const w=document.body.offsetWidth,h=document.body.offsetHeight;if(w!==lastWidth||h!==lastHeight){lastWidth=w;lastHeight=h;scrolled();}}).observe(document.body);
   const observer=new MutationObserver(records=>{
     if(records.every(r=>r.target===host||host.contains(r.target)))return;
+    if(!host.isConnected)mountOverlay();
     indexDirty=true;
-    clearTimeout(renderTimer);renderTimer=setTimeout(()=>{if(!disposed)restore();},500);
+    clearTimeout(renderTimer);renderTimer=setTimeout(()=>{if(!disposed){mountOverlay();restore();}},500);
   });
   observer.observe(document.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['open','hidden','aria-expanded','aria-hidden','class','style']});
   setInterval(()=>{
@@ -617,6 +632,7 @@ function start() {
   watch(()=>{if(connected()&&!dialog&&!mode)load();});
   if(typeof chrome!=='undefined'&&chrome.runtime?.onMessage)chrome.runtime.onMessage.addListener((message,sender,respond)=>{
     if(sender.id!==chrome.runtime.id)return;
+    if(message?.type==='pageIdentity'){respond({url:location.href});return;}
     if(message?.type==='agentPage'){
       (async()=>{
         if(pageKey(location.href)!==message.url)throw Error('Requested page navigated. Read its new URL before editing.');

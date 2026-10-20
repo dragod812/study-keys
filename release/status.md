@@ -1,17 +1,24 @@
 # Study Keys release status
 
-- Version: 1.6.1
+- Chrome Web Store published version: 1.6.1 (last verified October 19, 2026)
+- Release build: 1.6.2. Publication is in progress; see the section below and focus-media-verification.md.
 - Publisher name: Sidharth Padhee (saved in Web Store publisher settings)
 - Public repository: https://github.com/dragod812/study-keys
-- Beta release: https://github.com/dragod812/study-keys/releases/tag/v1.6.1
+- Beta release: https://github.com/dragod812/study-keys/releases
 - Website: https://dragod812.github.io/study-keys/
 - Privacy: https://dragod812.github.io/study-keys/privacy.html
 - Chrome Web Store draft ID: jcjililghkknjbifgcnnkipiblmmmhid
 - Submitted: package, description, Education category, English (United States), icon, 3 screenshots, promo tile, homepage, support, privacy/permission explanations, local-data disclosures, reviewer instructions.
 - Distribution: Public, free of charge, all regions.
-- Google confirmed 1.6.1 submission: Pending Review. Publisher contact email verified. Automatic publication after approval is enabled.
+- Rechecked October 19, 2026: Google reports **Published - public**, and the Published package is **1.6.1**.
 - Google flagged broad HTTP/HTTPS access for possible in-depth review. This access supports the advertised navigation and highlight restoration on visited web pages.
-- Submission date: 2026-10-11 UTC. The listing is not live on the Web Store until approved.
+- Initial submission date: 2026-10-11 UTC. The 1.6.1 listing is now public; later updates require their own approval.
+
+## Version 1.6.2 verification and publication
+
+104 JavaScript tests and 26 native-helper tests passed again on October 20, 2026. The installed-Chrome checks cover Ctrl+C input handoff, numbered and labeled field access, YouTube playback/fullscreen, and Hello Interview article transitions, selection and the existing notebook. See [focus and media verification](focus-media-verification.md). No permissions or dependencies changed, and the existing companion does not need reinstalling.
+
+The tested 475-file extension package and helper are recorded in `SHA256SUMS-1.6.2.txt`. Release notes, the website and store description have been updated. GitHub publication and Chrome Web Store submission are in progress. Google requested a fresh sign-in before the store upload; no 1.6.2 approval or submission is claimed yet.
 
 ## Version 1.6.1 verification and publication
 
@@ -19,7 +26,7 @@
 
 GitHub main and the public v1.6.1 release contain the fix. The 475-file extension ZIP matches the tested build, with no fixtures or private evidence. Both downloaded release assets match `SHA256SUMS-1.6.1.txt`. The website deployment succeeded and its release links and shortcut description show 1.6.1.
 
-The earlier 1.6.0 review was canceled to submit the replacement. Google verified package version 1.6.1 and saved the updated listing and reviewer instructions. Submission confirmed **Pending Review** on October 11, 2026 (America/Los_Angeles), with automatic publication after approval. The public Web Store listing is not live until Google approves it.
+The earlier 1.6.0 review was canceled to submit the replacement. Google verified package version 1.6.1 and saved the updated listing and reviewer instructions. Submission confirmed **Pending Review** on October 11, 2026 (America/Los_Angeles), with automatic publication after approval. On October 19 the developer dashboard confirmed approval and public publication of 1.6.1.
 
 The local unpacked Chrome extension was already reloaded and verified as 1.6.1. Refresh existing reading tabs when unsaved website edits are safe. The companion implementation is unchanged from 1.6.0; an existing 1.6.0 helper does not require an update.
 

@@ -21,13 +21,13 @@
 <a class="cta" href="#setup">Get started</a>
 <a class="cta secondary" href="https://github.com/dragod812/study-keys">View the repository</a>
 <p class="notice">
-<strong>macOS / Linux beta.</strong> Requires Chrome 131+, Python 3.11+, Git, and a separate local helper. Chrome Web Store review is pending. The helper is required for saving.</p>
+<strong>macOS / Linux beta.</strong> Requires Chrome 131+, Python 3.11+, Git, and a separate local helper. Version 1.6.1 is available in the Chrome Web Store; the 1.6.2 update requires Google review. The helper is required for saving.</p>
 </section>
 <section class="release-note">
-<div class="eyebrow">New in 1.6.1</div>
-<h2>Page notes, one toggle away.</h2>
-<p>Space h now opens and closes your notes sidebar, including after closing it with ×. Compact controls, local documents and optional AI study tools remain available.</p>
-<a href="https://github.com/dragod812/study-keys/releases/tag/v1.6.1">See the release and downloads →</a>
+<div class="eyebrow">New in 1.6.2</div>
+<h2>Move from typing to reading, smoothly.</h2>
+<p>Ctrl+C leaves a website text field and returns to Normal. Use gi or 2gi to focus fields, gI to choose a visible field by label, and Space p p to play or pause media. Hello Interview article transitions now keep section jumps, highlights and notebooks connected to the right page.</p>
+<a href="https://github.com/dragod812/study-keys/releases/tag/v1.6.2">See the release and downloads →</a>
 </section>
 <div class="palette">
 <span style="background:#ffe9a1">1 · Key idea</span>
@@ -70,6 +70,7 @@
 <span>Guide</span>
 </div>
 <p>Page marks use <kbd>ma</kbd> and <kbd>'a</kbd>. Capital-letter marks travel across tabs. Press <kbd>i</kbd> to pass keys through to the website; <kbd>Ctrl+C</kbd> returns to Normal mode.</p>
+<p>Use <kbd>gi</kbd>, <kbd>2gi</kbd> or <kbd>3gi</kbd> to focus a field by number, or <kbd>gI</kbd> to label visible text fields. Native <kbd>Tab</kbd> / <kbd>Shift+Tab</kbd> move between controls. <kbd>Ctrl+C</kbd> returns to Normal without changing your draft. <kbd>Space p p</kbd> plays or pauses the current page’s video or audio.</p>
 <p>Normal-mode commands keep the whole key press with Study Keys, so selecting passages does not also activate a media page’s playback shortcuts. Reload open tabs after updating. An older connected tab shows a reload-to-reconnect prompt so you can finish website edits first.</p>
 <p>
 <a href="demo.html">Try the reading demo after installing</a>
@@ -82,7 +83,7 @@
 <p>Press <kbd>Space</kbd> to discover the commands. Type each key in sequence; use <kbd>Esc</kbd> to close a picker.</p>
 <div class="shortcut-table">
 <table>
-<caption>Navigation shortcuts in version 1.6.1</caption>
+<caption>Navigation shortcuts in version 1.6.2</caption>
 <thead>
 <tr>
 <th scope="col">Keys</th>
@@ -176,7 +177,7 @@
 <section id="local-documents">
 <h2>Your local documents, too.</h2>
 <p>Open HTML files directly, or render Markdown with Markdown Viewer. Enable <strong>Allow access to file URLs</strong> in Study Keys’ extension details; Markdown Viewer needs its own file access enabled. Highlights, notes, notebooks and reading positions work on the rendered document.</p>
-<p>The companion saves annotations under <code>~/.study-keys/pages/local-files/</code>. It leaves source files unchanged and does not scan folders. Update both the extension and companion for this release.</p>
+<p>The companion saves annotations under <code>~/.study-keys/pages/local-files/</code>. It leaves source files unchanged and does not scan folders. The companion from 1.6.0 or 1.6.1 also works with 1.6.2; no helper reinstall is needed for this update.</p>
 </section>
 <section id="agents">
 <h2>Study with your agent. Keep one notebook.</h2>
@@ -188,7 +189,7 @@
 <section id="setup">
 <h2>Set up once. Keep learning.</h2>
 <ol>
-<li>Download the <a href="https://github.com/dragod812/study-keys/releases/tag/v1.6.1">latest beta release</a>. Until the store listing is available, extract the extension ZIP and load its folder using <strong>chrome://extensions → Developer mode → Load unpacked</strong>.</li>
+<li>Install from the <a href="https://chromewebstore.google.com/detail/jcjililghkknjbifgcnnkipiblmmmhid">Chrome Web Store</a> or download the <a href="https://github.com/dragod812/study-keys/releases/tag/v1.6.2">latest beta release</a>. For 1.6.2 before store approval, extract the extension ZIP and load its folder using <strong>chrome://extensions → Developer mode → Load unpacked</strong>.</li>
 <li>Open <strong>Study Keys → Set up local folder</strong> from the toolbar. Download the local helper ZIP and extract it.</li>
 <li>In a terminal in that folder, run the exact command shown on the setup page. It includes your extension’s ID.</li>
 <li>Click <strong>Check connection</strong>, then reload your reading tabs. Disable other Vim keyboard extensions to avoid conflicts.</li>

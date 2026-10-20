@@ -81,7 +81,7 @@ export function label(el) {return (el.getAttribute('aria-label')||el.labels?.[0]
 export function pageDialog(){return [...document.querySelectorAll('dialog[open],[role="dialog"][aria-modal="true"]')].find(available);}
 export function targets(viewport=false) {
   const scope=pageDialog()||document;
-  return [...scope.querySelectorAll('a[href],button,input:not([type="hidden"]),textarea,select,summary,[role="button"],[role="checkbox"],[role="tab"],[tabindex="0"]')].filter(el=>{
+  return [...scope.querySelectorAll('a[href],button,input:not([type="hidden"]),textarea,select,[contenteditable]:not([contenteditable="false"]),[role="textbox"],summary,[role="button"],[role="checkbox"],[role="tab"],[tabindex="0"]')].filter(el=>{
     if(!available(el)||el.parentElement?.closest('button,a[href],summary'))return false;
     if(!viewport)return true;
     const r=el.getBoundingClientRect(),x=(Math.max(0,r.left)+Math.min(innerWidth,r.right))/2,y=(Math.max(0,r.top)+Math.min(innerHeight,r.bottom))/2;

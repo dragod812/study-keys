@@ -4,6 +4,7 @@ import {pageKey,supportedPage} from './core.js';
 import {createNavigationService} from './navigation-background.js';
 import {createAgentService} from './agent-background.js';
 import {createSidePanelController} from './side-panel.js';
+import {currentPageSender} from './page-sender.js';
 const sidePanel=createSidePanelController(chrome);
 let agentService,reconnectTimer,reconnectDelay=2000;
 const native=nativeClient(chrome.runtime,async command=>{if(!(await chrome.storage.local.get('agent-access'))['agent-access'])throw Error('AI access is off. Enable it in Study Keys setup.');return agentService(command);},()=>{clearTimeout(reconnectTimer);reconnectTimer=setTimeout(()=>startAgentBridge().catch(()=>{}),reconnectDelay);reconnectDelay=Math.min(reconnectDelay*2,60000);});
@@ -47,14 +48,14 @@ chrome.runtime.onMessage.addListener((m,sender,respond)=>{
       if(!['drawingLoad','drawingSave','drawingLayout'].includes(m?.action)||!sender.tab||!m.session)throw Error('Notebook session required.');
       const key='notebook:'+m.session,session=(await chrome.storage.session.get(key))[key];
       if(!session||session.tabId!==sender.tab.id)throw Error('Reopen the notebook from Study Keys on this page.');
-      if(!isNotebook&&(sender.frameId!==0||pageKey(sender.url)!==session.url))throw Error('Notebook belongs to another page.');
+      if(!isNotebook)sender=await currentPageSender(chrome,sender,session.url);
       const value=await repository({...m,type:m.action,url:session.url,title:session.title,recoveryId:session.recoveryId});
       return {...value,storage:await storage.status()};
     }
     const trusted=['library.html','panel.html','popup.html','setup.html'].some(p=>sender.url?.split(/[?#]/)[0]===chrome.runtime.getURL(p));
     if(!trusted) {
       if(!sender.tab||sender.frameId!==0||!['page','save','enabled','openLibrary','navigate','openNotebook','marks','setMark','getMark','gotoMark','navigation','navigationLibrary'].includes(m?.type))throw Error('Request not available to page scripts.');
-      if(!['openLibrary','navigate'].includes(m.type)&&pageKey(m.url)!==pageKey(sender.url))throw Object.assign(Error('The page changed. Please try again.'),{code:'PAGE_CHANGED'});
+      if(!['openLibrary','navigate'].includes(m.type))sender=await currentPageSender(chrome,sender,m.url);
     }
     if(m.type==='navigation')return navigation.request(m,sender);
     if(m.type==='navigationLibrary')return repository({type:'library'});
