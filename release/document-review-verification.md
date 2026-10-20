@@ -7,6 +7,8 @@ Recorded October 20, 2026. Installed Chrome verification and the public release 
 - 115 JavaScript tests pass, including revision comparisons, source mapping, shell quoting, partial staging, Ctrl+C versus Cmd+C, reader sender validation, canonical file identity, extension-reader/notebook message routing, and independent draft recovery.
 - 33 Python helper/installer tests pass. Review cases cover exact-file grants/revocation, symlink and size rejection, source immutability, optimistic concurrency, immutable handoffs, restart recovery, CRLF/Unicode, untracked files, Git index preservation, and advancing the previous review baseline without overwriting unrelated staged work.
 - Production dependency audit: zero known vulnerabilities.
+- The installed companion files were updated and matched against the candidate sources. All 33 helper tests also passed with the installed Python 3.14.5 interpreter; the existing native-host extension registration was retained. Chrome must still reload to establish a new connection.
+- The draft release's extension/helper ZIPs were downloaded and verified against `SHA256SUMS-1.7.0.txt`.
 
 ## Browser workflow verified
 
@@ -29,7 +31,7 @@ The existing installed extension was put into Insert mode only on test tabs to p
 
 ## Remaining release gate
 
-- Load the updated helper and extension with approved access only to the two test fixtures.
+- Reload the updated extension and connect to the updated helper, with source access limited to the two test fixtures.
 - Verify the packaged reader, plain local Markdown auto-render, native messaging grants, comment save/reload, clipboard contents, existing notebook/notes identity, tab navigation and Ctrl+C in installed Chrome.
 - GitHub release and Pages deployment, then Chrome Web Store upload/submission. Google publication must be reported separately from submission.
 

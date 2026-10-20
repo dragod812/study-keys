@@ -64,7 +64,7 @@ https://dragod812.github.io/study-keys/
 
 ## Single purpose
 
-Help users study web pages and opened Markdown/HTML documents with keyboard navigation, local annotations and page-linked drawing notebooks, optionally operated by their chosen AI agent.
+Help users study and review web pages and opened Markdown/HTML documents using keyboard navigation, local highlights, source-linked feedback and drawing notebooks, optionally assisted by their chosen AI agent.
 
 ## Permission explanations
 
@@ -73,7 +73,7 @@ Help users study web pages and opened Markdown/HTML documents with keyboard navi
 - sidePanel: Display the current page's highlights and notes in Chrome's side panel when opened by the user.
 - tabs: Read open-tab titles and URLs for the tab picker, target passage searches at loaded accessible tabs, and switch or restore reading tabs. No history API or scan of stored browsing history.
 - tabGroups: Let the user create, find, focus and restore Chrome tab groups and move selected tabs between groups. Group metadata is processed locally and included in explicitly saved workspaces.
-- nativeMessaging: Connect to the separately installed com.studykeys.local companion for ~/.study-keys library storage. If the user enables AI access, it relays requested page reading and annotation/notebook operations between the extension and a local stdio MCP client over a private Unix socket. AI access is off by default and revocable. The optional macOS vertical-tabs action clicks only Chrome's native expand/collapse button and needs separate opt-in and Accessibility access. No network listener or arbitrary command API is exposed. Only explicitly registered extension IDs are allowed.
+- nativeMessaging: Connect to the separately installed com.studykeys.local companion for ~/.study-keys library storage. Document review reads an individually approved Markdown/HTML source file and its Git HEAD/index revisions, and saves local comments, drafts, handoffs and raw snapshots. Grants are exact-file and revocable; no folder scan, source edit or Git staging is performed. If the user enables AI access, it relays requested page reading and annotation/notebook operations between the extension and a local stdio MCP client over a private Unix socket. AI access is off by default and revocable. The optional macOS vertical-tabs action clicks only Chrome's native expand/collapse button and needs separate opt-in and Accessibility access. No network listener or arbitrary command API is exposed. Only explicitly registered extension IDs are allowed.
 - HTTP/HTTPS/file content script matches: Read rendered page text and controls for keyboard navigation, selection, highlight restoration and loaded-passage search. Local Markdown/HTML works only after the user enables file-URL access; unopened files and folders are not scanned. Saved annotations, file/page identifiers and drawings stay in the local library. With optional AI access enabled, the user's connected agent can request page text and edit those records; a cloud agent's model provider may process the requested content under its own policies.
 - Remote code: None. JavaScript, Excalidraw, and fonts are bundled. No remotely hosted executable code is loaded.
 
@@ -108,11 +108,11 @@ This beta requires macOS or Linux, Chrome 131+, Python 3.11+, and Git. No login 
 
 21. Click a website input, type a draft, and press Ctrl+C. The draft should remain while Study Keys returns to Normal. Try gi / 2gi / 3gi and gI, then Tab / Shift+Tab. Escape remains native in Insert mode. On a site with client-side article navigation, move to a second article and check section jumps, document search, and its notebook without reloading. Existing annotations must stay with their original page.
 
+22. Review workflow (1.7.0): update the helper, open a UTF-8 .md or .html fixture, and press Space r r. Grant that document. Use v → Space → p → start/end labels → c, type feedback and Ctrl+Enter to save. Space r c then y copies a source-aware handoff. Modify the fixture externally and use Space r e to compare with the handoff. Compare staged/unstaged revisions using the selector; the extension never changes the Git index. Original comment lines/quotes survive, including deletions. Revoke source access from the reader.
+
 No credentials are needed. If the helper is unavailable, the setup page shows the error and writes fail visibly. To remove the integration, remove the com.studykeys.local.json native-host registration and ~/.study-keys/.integration after preserving your library. Uninstalling the extension does not delete the local library.
 
 ## Store item
 
 ID: jcjililghkknjbifgcnnkipiblmmmhid
-Data disclosures: Web history (open-tab metadata and saved page identifiers/workspaces), User activity (keyboard commands and reading jumps/marks), Website content (searched passages, selected text, notes and drawings); processed and stored locally. With separately enabled MCP access, requested content is also provided to the user’s chosen agent, which may use a cloud model provider. No remote code.
-
-20. Review workflow (1.7.0): update the helper, open a UTF-8 .md or .html fixture, and press Space r r. Grant that document. Use v → Space → p → start/end labels → c, type feedback and Ctrl+Enter to save. Space r c then y copies a source-aware handoff. Modify the fixture externally and use Space r e to compare with the handoff. Compare staged/unstaged revisions using the selector; the extension never changes the Git index. Original comment lines/quotes survive, including deletions. Revoke source access from the reader.
+Data disclosures: Web history (open-tab metadata and saved page identifiers/workspaces), User activity (keyboard commands and reading jumps/marks), Website content (searched passages, selected text, notes, drawings, approved local document sources/revisions, review feedback and handoffs); processed and stored locally. With separately enabled MCP access, requested content is also provided to the user’s chosen agent, which may use a cloud model provider. No remote code.
