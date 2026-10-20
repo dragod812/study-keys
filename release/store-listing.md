@@ -41,7 +41,7 @@ QUIETER CONTROLS
 The small mode pill, which-key menu and selection controls sit in the lower-right corner. Compact notifications leave more of the page visible. Quick spots share a 1–9 hint; ? keeps full shortcut descriptions searchable.
 
 STUDY LOCAL DOCUMENTS
-Enable Allow access to file URLs in extension details to use Study Keys on local HTML and rendered Markdown files. Markdown Viewer needs its own file access. The companion saves annotations in your library without modifying source files or scanning folders. Update both the extension and companion.
+Enable Allow access to file URLs in extension details to use Study Keys on local HTML and rendered Markdown files. Markdown Viewer needs its own file access. The companion saves annotations in your library without modifying source files or scanning folders. The companion from 1.6.0 or 1.6.1 also works with 1.6.2.
 
 OPTIONAL AI STUDY ASSISTANT
 The companion includes a local MCP server. When you enable AI access, your chosen agent can read a requested page, add selective highlights and notes, and build editable learn-by-layers diagrams in the existing Excalidraw notebook. Existing manual work is preserved. Codex setup also installs the $study-keys skill; the repository has a standalone skill installer. AI access is off by default and can be revoked. Your chosen cloud agent may send requested content to its model provider; its policies apply. Study Keys does not call a separate generation service.

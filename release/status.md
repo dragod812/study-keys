@@ -1,10 +1,10 @@
 # Study Keys release status
 
-- Chrome Web Store published version: 1.6.1 (last verified October 19, 2026)
-- Release build: 1.6.2. Publication is in progress; see the section below and focus-media-verification.md.
+- Chrome Web Store published version: 1.6.1 (last verified October 20, 2026)
+- GitHub release: 1.6.2. Chrome Web Store update: **Pending review**, submitted October 20, 2026 with automatic publication after approval.
 - Publisher name: Sidharth Padhee (saved in Web Store publisher settings)
 - Public repository: https://github.com/dragod812/study-keys
-- Beta release: https://github.com/dragod812/study-keys/releases
+- Beta release: https://github.com/dragod812/study-keys/releases/tag/v1.6.2
 - Website: https://dragod812.github.io/study-keys/
 - Privacy: https://dragod812.github.io/study-keys/privacy.html
 - Chrome Web Store draft ID: jcjililghkknjbifgcnnkipiblmmmhid
@@ -18,7 +18,9 @@
 
 104 JavaScript tests and 26 native-helper tests passed again on October 20, 2026. The installed-Chrome checks cover Ctrl+C input handoff, numbered and labeled field access, YouTube playback/fullscreen, and Hello Interview article transitions, selection and the existing notebook. See [focus and media verification](focus-media-verification.md). No permissions or dependencies changed, and the existing companion does not need reinstalling.
 
-The tested 475-file extension package and helper are recorded in `SHA256SUMS-1.6.2.txt`. Release notes, the website and store description have been updated. GitHub publication and Chrome Web Store submission are in progress. Google requested a fresh sign-in before the store upload; no 1.6.2 approval or submission is claimed yet.
+GitHub main and the public v1.6.2 release contain the fix (`ac50b7ee538510898aadfec4334b049234b8f4ed`). Both downloaded ZIP assets match `SHA256SUMS-1.6.2.txt`; the extension ZIP contains 475 files. GitHub Pages reports a successful deployment of that commit, and the live website shows 1.6.2, its download links and the new shortcuts.
+
+Google verified the uploaded draft package as 1.6.2. The updated 6,044-character public description and 458-character reviewer summary were saved. Submission confirmed **Your extension was submitted for review**, with **Pending review** in the dashboard on October 20, 2026 (America/Los_Angeles). Automatic publication after approval was selected. Version 1.6.1 remains public until Google approves the update. The locally installed 1.6.2 build was already reloaded and tested.
 
 ## Version 1.6.1 verification and publication
 

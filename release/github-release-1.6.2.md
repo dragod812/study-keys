@@ -9,4 +9,4 @@ Study Keys 1.6.2 makes it easier to move between website text fields, reading an
 
 No extension permissions or dependencies changed. The companion is unchanged from 1.6.0/1.6.1, so an existing helper installation does not need an update. Reload reading tabs when unsaved website edits are safe. The macOS/Linux beta requirements remain unchanged.
 
-The Chrome Web Store update requires Google review. The GitHub package is available immediately; extract the extension ZIP and use Chrome's **Load unpacked** option to install it. Download hashes are in `SHA256SUMS-1.6.2.txt`.
+The Chrome Web Store update was submitted on October 20, 2026 and is pending Google review, with automatic publication after approval. Version 1.6.1 remains public until then. The GitHub package is available immediately; extract the extension ZIP and use Chrome's **Load unpacked** option to install it. Download hashes are in `SHA256SUMS-1.6.2.txt`.
