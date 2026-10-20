@@ -41,7 +41,14 @@ QUIETER CONTROLS
 The small mode pill, which-key menu and selection controls sit in the lower-right corner. Compact notifications leave more of the page visible. Quick spots share a 1–9 hint; ? keeps full shortcut descriptions searchable.
 
 STUDY LOCAL DOCUMENTS
-Enable Allow access to file URLs in extension details to use Study Keys on local HTML and rendered Markdown files. Markdown Viewer needs its own file access. The companion saves annotations in your library without modifying source files or scanning folders. The companion from 1.6.0 or 1.6.1 also works with 1.6.2.
+Enable Allow access to file URLs in extension details to use Study Keys on local HTML and rendered Markdown files. Markdown Viewer needs its own file access. The companion saves annotations in your library without modifying source files or scanning folders. Update the companion to 1.7.0 for document review.
+
+REVIEW AI-GENERATED DOCUMENTS
+Plain local Markdown is rendered by Study Keys. Space r r opens a source-aware review reader for Markdown or HTML. Select with v, then c to comment; v Space t selects sentences, v Space p selects paragraphs, and C adds whole-document feedback. Ctrl+Enter saves. Space r c opens review comments; y in that sidebar or Space r y copies an agent handoff with source hashes, lines, quotes and feedback.
+
+The handoff asks your agent to verify the source, stage only the reviewed file, and leave new edits unstaged. Study Keys itself never stages or edits sources. Space r e loads the next revision; Space r d shows additions and deletions against the last handoff. Compare Git staged, unstaged or HEAD revisions without altering the index. Original comment locations survive revisions; resolve comments after checking the result.
+
+Review needs the updated 1.7.0 helper and explicit per-document source access. UTF-8 regular files up to 2 MiB; one document per handoff. HTML is a static reading view without source scripts/styles or remote images. Review records and raw snapshots stay local; back up the library including .snapshots, as annotation JSON exports do not yet include them.
 
 OPTIONAL AI STUDY ASSISTANT
 The companion includes a local MCP server. When you enable AI access, your chosen agent can read a requested page, add selective highlights and notes, and build editable learn-by-layers diagrams in the existing Excalidraw notebook. Existing manual work is preserved. Codex setup also installs the $study-keys skill; the repository has a standalone skill installer. AI access is off by default and can be revoked. Your chosen cloud agent may send requested content to its model provider; its policies apply. Study Keys does not call a separate generation service.
@@ -107,3 +114,5 @@ No credentials are needed. If the helper is unavailable, the setup page shows th
 
 ID: jcjililghkknjbifgcnnkipiblmmmhid
 Data disclosures: Web history (open-tab metadata and saved page identifiers/workspaces), User activity (keyboard commands and reading jumps/marks), Website content (searched passages, selected text, notes and drawings); processed and stored locally. With separately enabled MCP access, requested content is also provided to the user’s chosen agent, which may use a cloud model provider. No remote code.
+
+20. Review workflow (1.7.0): update the helper, open a UTF-8 .md or .html fixture, and press Space r r. Grant that document. Use v → Space → p → start/end labels → c, type feedback and Ctrl+Enter to save. Space r c then y copies a source-aware handoff. Modify the fixture externally and use Space r e to compare with the handoff. Compare staged/unstaged revisions using the selector; the extension never changes the Git index. Original comment lines/quotes survive, including deletions. Revoke source access from the reader.

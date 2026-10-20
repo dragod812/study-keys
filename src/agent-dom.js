@@ -1,3 +1,4 @@
+import {documentURL} from './document-context.js';
 import {buildIndex,fromSelection,available} from './dom.js';
 import {pageKey,makeAnchor} from './core.js';
 import {hash} from './agent-core.js';
@@ -12,7 +13,7 @@ export async function readAgentPage(){
  const readable=e=>available(e)&&!e.closest(privateFields)&&!e.querySelector(privateFields);
  const tables=[...document.querySelectorAll('table')].filter(readable).slice(0,20).map(t=>({caption:t.caption?.innerText||'',rows:[...t.rows].slice(0,100).map(row=>[...row.cells].filter(readable).map(c=>c.innerText.slice(0,500)))}));
  const code=[...document.querySelectorAll('pre')].filter(readable).slice(0,40).map(p=>p.innerText.slice(0,20000));
- return {url:pageKey(location.href),title:document.title.slice(0,500),text,blocks,tables,code,contentHash,capturedAt:new Date().toISOString(),coverage:{truncated:index.truncated||index.text.length>limit,collapsed:[...details].map(([id,e])=>({id,title:e.querySelector('summary')?.textContent?.trim().slice(0,200)||'Details'})),unsupported:{iframes:document.querySelectorAll('iframe').length,canvases:document.querySelectorAll('canvas').length},note:'Rendered top-document text only. Hidden/unloaded text, embedded frames and canvas text are not read. Form fields and Study Keys UI are excluded. Auxiliary tables/code are capped at 20 tables × 100 rows and 40 code blocks × 20,000 characters; text and offsets use normalized whitespace.'}};
+ return {url:pageKey(documentURL()),title:document.title.slice(0,500),text,blocks,tables,code,contentHash,capturedAt:new Date().toISOString(),coverage:{truncated:index.truncated||index.text.length>limit,collapsed:[...details].map(([id,e])=>({id,title:e.querySelector('summary')?.textContent?.trim().slice(0,200)||'Details'})),unsupported:{iframes:document.querySelectorAll('iframe').length,canvases:document.querySelectorAll('canvas').length},note:'Rendered top-document text only. Hidden/unloaded text, embedded frames and canvas text are not read. Form fields and Study Keys UI are excluded. Auxiliary tables/code are capped at 20 tables × 100 rows and 40 code blocks × 20,000 characters; text and offsets use normalized whitespace.'}};
 }
-export function agentSelection(){const index=buildIndex(),span=fromSelection(index);return {url:pageKey(location.href),anchor:span?makeAnchor(index.text,span.start,span.end):null};}
+export function agentSelection(){const index=buildIndex(),span=fromSelection(index);return {url:pageKey(documentURL()),anchor:span?makeAnchor(index.text,span.start,span.end):null};}
 export function revealAgentSection(id){const el=details.get(id);if(!el?.isConnected||el.tagName!=='DETAILS')throw Error('Read the page first and choose an observed details section.');el.open=true;return {revealed:id};}

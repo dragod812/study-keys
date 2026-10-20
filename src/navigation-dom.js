@@ -1,10 +1,11 @@
+import {documentURL} from './document-context.js';
 import {buildIndex,available,scrollPane} from './dom.js';
 import {makeAnchor,resolveAnchor} from './core.js';
 import {capturePosition,restorePosition} from './mark-dom.js';
 import {literalMatches,passageScore} from './navigation-core.js';
 export const readingRoot=()=>document.querySelector('main,article,[role=main]')||document.body;
 export const headings=()=>[...readingRoot().querySelectorAll('h1,h2,h3,h4,h5,h6')].filter(n=>available(n)&&!n.closest('nav,aside,[role=navigation]'));
-export function capture(seed){return {url:location.href,title:document.title,position:capturePosition(seed||document.activeElement)};}
+export function capture(seed){return {url:documentURL(),title:document.title,position:capturePosition(seed||document.activeElement)};}
 export function passages(query=''){
   const root=readingRoot(),index=buildIndex(root),nodes=[...root.querySelectorAll('h1,h2,h3,h4,h5,h6,p,li,pre,td,summary')].filter(n=>available(n)&&!n.closest('nav,aside,[role=navigation]'));
   const spans=new Map(),owners=new Set(nodes);let previousNode=null,owner=null;

@@ -35,8 +35,16 @@ export function sectionSpans(index) {
     return {...h,end};
   });
 }
+export function sentenceSpans(index) {
+  const segmenter=new Intl.Segmenter(undefined,{granularity:'sentence'});
+  return paragraphSpans(index).flatMap(p=>[...segmenter.segment(index.text.slice(p.start,p.end))].map(part=>{
+    const leading=part.segment.length-part.segment.trimStart().length;
+    const start=p.start+part.index+leading,end=p.start+part.index+part.segment.trimEnd().length;
+    return {owner:p.owner,start,end,word:index.text.slice(start,end),kind:'sentence'};
+  }).filter(s=>s.end>s.start));
+}
 export function visibleScopes(index,kind) {
-  const spans=kind==='section'?sectionSpans(index):paragraphSpans(index),words=wordTokens(index.text);
+  const spans=kind==='section'?sectionSpans(index):kind==='sentence'?sentenceSpans(index):paragraphSpans(index),words=wordTokens(index.text);
   return spans.flatMap(span=>{
     // A long paragraph or a section whose heading is above the viewport can
     // still be chosen from any of its visible words.

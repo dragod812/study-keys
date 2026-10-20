@@ -1,5 +1,6 @@
 import {buildDrawing} from './drawing-build.mjs';
 import http from 'node:http';
+import {spawn} from 'node:child_process';
 import {readFile,writeFile,mkdir} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import path from 'node:path';
@@ -21,7 +22,13 @@ for(const port of [8788,8789,8790]){
    let body='';for await(const part of req){body+=part;if(body.length>30*1024*1024)throw Error('Too large');}
    let result;try{
     let m=JSON.parse(body),value;
-    if(m.type==='openNotebook'){const session=crypto.randomUUID();sessions.set(session,{url:m.url,title:m.title});value={session,layout:data['notebook-layout'],src:`http://127.0.0.1:${port}/notebook.html?session=${session}`};}
+    if(m.type==='review')value=await new Promise((resolve,reject)=>{
+      const child=spawn('python3',[path.join(root,'native/review_fixture.py')],{cwd:root});let out='',err='';
+      child.stdout.on('data',x=>out+=x);child.stderr.on('data',x=>err+=x);
+      child.on('error',reject);child.on('close',code=>{if(code)reject(Error(err.split('\n').filter(Boolean).at(-1)));else try{resolve(JSON.parse(out));}catch(e){reject(e);}});
+      child.stdin.end(JSON.stringify(m));
+    });
+    else if(m.type==='openNotebook'){const session=crypto.randomUUID();sessions.set(session,{url:m.url,title:m.title});value={session,layout:data['notebook-layout'],src:`http://127.0.0.1:${port}/notebook.html?session=${session}`};}
     else if(m.type==='previewNavigationGet')value={[m.key]:data[m.key]};
     else if(m.type==='previewNavigationSet'){data={...data,...m.values};await writeFile(db,JSON.stringify(data,null,2));value={};}
     else{if(m.type==='notebookRequest'){const scope=sessions.get(m.session);if(!scope)throw Error('Reopen the preview notebook');m={...m,type:m.action,...scope};}value=await repository(m);}

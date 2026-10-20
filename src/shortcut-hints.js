@@ -1,4 +1,4 @@
-const groups={d:'Document',v:'Select text',g:'Tab groups',e:'Quick spots',w:'Workspaces',p:'Library & search'};
+const groups={r:'Review',d:'Document',v:'Select text',g:'Tab groups',e:'Quick spots',w:'Workspaces',p:'Library & search'};
 
 // Presentation only: key matching and execution still use the command registry.
 export function shortcutHints(commands,sequence){

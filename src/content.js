@@ -17,12 +17,30 @@ import {readAgentPage,agentSelection,revealAgentSection} from './agent-dom.js';
 import {shortcutHints} from './shortcut-hints.js';
 import {editableFields,activeElement,returnToNormalKey} from './focus.js';
 import {toggleMedia} from './media.js';
+import {documentURL,reviewDocument} from './document-context.js';
+import {prepareReview,createReviewUI} from './review-ui.js';
+import {renderDocument} from './review-render.js';
+import readerCSS from '../review.css';
 
-// The isolated content-script world owns the state. No page globals, eval,
-// network requests, HTML injection or changes to the site's text nodes.
-let keyHandler=null,uiOwner=null,uiKeyHandler=null;
+// The isolated content-script world owns reading state. Ordinary websites keep
+// their text nodes; plain local Markdown and the owned review reader use the
+// packaged parser to construct a safe reading view without executing source HTML.
+let keyHandler=null,uiOwner=null,uiKeyHandler=null,readerTabId=null;
 const releaseKeys=keyboardBoundary(window,{onKey:e=>keyHandler?.(e),ownsUI:e=>!!uiOwner?.(e),onUIKey:e=>uiKeyHandler?.(e)});
-function ready(){if(!supportedPage(location.href)){releaseKeys();return;}if(document.querySelector(typeof STUDY_KEYS_PREVIEW!=='undefined'&&STUDY_KEYS_PREVIEW?'[data-study-keys-preview]':'[data-study-keys]')){releaseKeys();return;}start();}
+async function ready(){
+  if(!supportedPage(documentURL())){releaseKeys();return;}
+  if(document.querySelector(typeof STUDY_KEYS_PREVIEW!=='undefined'&&STUDY_KEYS_PREVIEW?'[data-study-keys-preview]':'[data-study-keys]')){releaseKeys();return;}
+  if(reviewDocument()){
+    if(globalThis.chrome?.tabs?.getCurrent)readerTabId=(await chrome.tabs.getCurrent())?.id;
+    await prepareReview();
+  }
+  else if(location.protocol==='file:'&&/\.(md|markdown|mdown|mkd|mkdn)$/i.test(location.pathname)&&document.body.children.length===1&&document.body.firstElementChild?.tagName==='PRE'){
+    const source=document.body.firstElementChild.textContent,article=document.createElement('main');article.id='review-document';
+    renderDocument(article,source,false);document.body.replaceChildren(article);
+    const style=document.createElement('style');style.textContent=readerCSS;document.head.append(style);
+  }
+  start();
+}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ready,{once:true});else ready();
 function start() {
   const host=document.createElement('div');host.dataset.studyKeys='';if(typeof STUDY_KEYS_PREVIEW!=='undefined'&&STUDY_KEYS_PREVIEW)host.dataset.studyKeysPreview='';
@@ -33,10 +51,11 @@ function start() {
   function button(text,run,cls){const n=el('button',text,cls);n.type='button';n.onclick=run;return n;}
   const badge=button('Normal · ?',()=>disconnected?reconnect():help(),'badge'),toast=el('div',null,'toast'),layer=el('div'),which=el('div',null,'which');
   badge.setAttribute('aria-label','Study Keys keyboard help');toast.setAttribute('role','status');toast.setAttribute('aria-live','polite');toast.hidden=which.hidden=true;surface.append(badge,toast,layer,which);
-  let url=pageKey(location.href),items=[],enabled=true,insert=false,disconnected=false,index=null,resolved=new Map();
+  let url=pageKey(documentURL()),items=[],enabled=true,insert=false,disconnected=false,index=null,resolved=new Map();
   let dialog=null,dialogKey=null,previousFocus=null,closeGuard=null,mode=null,bar=null,labels=[],prefix='',startWord=null,pending=null;
   let sequence=[],sequenceTimer,toastTimer,renderTimer,scrollFrame,hover=null,lastPane=null,lastPicker=null,findResults=[],findAt=-1;
   let disposed=false,routeHref=location.href,observed=null;
+  let review=null;
   let copySession=null,normalCount='',normalInSiteDialog=false;
   let drawer=null,drawerSearch='',annotationAt=-1,newTabHints=false;
   let writingHighlight=false,selectionMode='visual',markMode=null;
@@ -61,7 +80,7 @@ function start() {
   function paint(name,ranges){if(CSS.highlights&&globalThis.Highlight)CSS.highlights.set('studykeys-'+name,new Highlight(...ranges));}
   function clearPreview(){CSS.highlights?.delete('studykeys-preview');}
   function resetSequence(){sequence=[];clearTimeout(sequenceTimer);which.hidden=true;}
-  function clearMode(){copySession=null;layer.hidden=false;scopeMenu=false;blockKind=null;clearTimeout(layoutTimer);layoutTimer=0;wordCache=[];nextWordCode=null;indexDirty=false;mode=null;markMode=null;labels=[];prefix='';startWord=null;pending=null;layer.replaceChildren();bar?.remove();bar=null;clearPreview();resetSequence();updateBadge();}
+  function clearMode(){review?.cancel();copySession=null;layer.hidden=false;scopeMenu=false;blockKind=null;clearTimeout(layoutTimer);layoutTimer=0;wordCache=[];nextWordCode=null;indexDirty=false;mode=null;markMode=null;labels=[];prefix='';startWord=null;pending=null;layer.replaceChildren();bar?.remove();bar=null;clearPreview();resetSequence();updateBadge();}
   function focusBack(){if(previousFocus?.isConnected&&previousFocus!==document.body)previousFocus.focus({preventScroll:true});}
   function closeDialog(force=false){if(!dialog)return true;if(!force&&closeGuard&&!closeGuard())return false;dialog.close();dialog.remove();dialog=null;dialogKey=null;closeGuard=null;focusBack();return true;}
   function openDialog(title){
@@ -94,7 +113,7 @@ function start() {
     clearTimeout(toastTimer);toast.hidden=true;
     restore();if(drawer)renderDrawer();return true;
   }
-  const load=createPageLoader({request,href:()=>location.href,enter:enterPage,
+  const load=createPageLoader({request,href:()=>documentURL(),enter:enterPage,
     apply:data=>{items=data.items;enabled=data.enabled;updateBadge();restore();},
     report:error=>say(error.message)});
   function restore(){
@@ -139,16 +158,18 @@ function start() {
     row.append(button('n Note',noteSelection),button('Space · Select…',openScopeMenu));
     if(pending.kind==='paragraph')bar.append(el('p','j / k next / previous paragraph · Shift+J / Shift+K extend down / up','muted'));
     if(pending.kind==='page')bar.append(el('p','Loaded readable text, including navigation. Expand collapsed sections first.','muted'));
+    if(review)bar.append(button('c · Review comment',()=>review.comment()));
     bar.append(el('p',selectionPreview(),'selected-quote'));
     const range=index.range(pending.start,pending.end);paint('preview',range?[range]:[]);updateBadge();
   }
   function selectionPreview(){const quote=pending.anchor.quote;return quote.length>150?quote.slice(0,100)+' … '+quote.slice(-45):quote;}
   function choosePassage(start,end,kind=null){
     try{pending={start,end,kind,anchor:makeAnchor(index.text,start,end,Infinity)};}catch(e){say(e.message);return;}
-    startWord=null;mode=selectionMode;layer.replaceChildren();wordCache=[];labels=[];prefix='';getSelection()?.removeAllRanges();renderSelection();
+    startWord=null;mode=selectionMode;layer.replaceChildren();wordCache=[];labels=[];prefix='';getSelection()?.removeAllRanges();renderSelection();review?.afterSelection();
   }
   const scopeChoices=[
     {key:'w',label:'Words',run:()=>beginWords(null,selectionMode)},
+    {key:'t',label:'Sentences',run:()=>beginBlocks('sentence',selectionMode)},
     {key:'p',label:'Paragraphs',run:()=>beginBlocks('paragraph',selectionMode)},
     {key:'s',label:'Heading sections',run:()=>beginBlocks('section',selectionMode)},
     {key:'a',label:'Whole page',run:()=>selectPage(selectionMode)},
@@ -159,7 +180,7 @@ function start() {
   }
   function openScopeMenu(){
     scopeMenu=true;layer.hidden=true;
-    makeBar('SELECT · choose a scope','w words · p paragraphs · s heading sections · a whole page · Esc back');
+    makeBar('SELECT · choose a scope','w words · t sentences · p paragraphs · s heading sections · a whole page · Esc back');
     const row=el('div',null,'row selection-actions');
     for(const c of scopeChoices)row.append(button(c.key+' '+c.label,()=>{scopeMenu=false;c.run();}));bar.append(row);
   }
@@ -198,7 +219,7 @@ function start() {
     makeBar(selectionMode.toUpperCase()+' · Choose start word','Type a word label · Space: paragraphs / sections / page · ↓ ↑ scroll · Esc cancels');rebuildLabels();updateBadge();trackLayout();
   }
   function refreshSelection(force=false){
-    if(pageKey(location.href)!==url){load();return false;}
+    if(pageKey(documentURL())!==url){load();return false;}
     if(!selecting())return false;
     if(!force&&!indexDirty)return true;
     const next=buildIndex(),rebase=spanRebaser(index,next);
@@ -255,19 +276,19 @@ function start() {
     if(!['start','end','blocks'].includes(mode)||scopeMenu)return;
     let count=0;
     for(const item of labels){item.tag.hidden=!item.code.startsWith(prefix)||(mode==='end'&&item.start<startWord.start);item.tag.classList.toggle('start',item.start===startWord?.start);if(!item.tag.hidden)count++;}
-    const paragraphMode=mode==='blocks'&&blockKind==='paragraph';
-    const blockPrompt=paragraphMode?(startWord?`Choose end paragraph · from “${index.text.slice(startWord.start,startWord.end).slice(0,35)}”`:'Choose start paragraph'):`Choose ${blockKind}`;
+    const paragraphMode=mode==='blocks'&&['paragraph','sentence'].includes(blockKind);
+    const blockPrompt=paragraphMode?(startWord?`Choose end ${blockKind} · from “${index.text.slice(startWord.start,startWord.end).slice(0,35)}”`:`Choose start ${blockKind}`):`Choose ${blockKind}`;
     bar.querySelector('strong').textContent=selectionMode.toUpperCase()+' · '+(mode==='blocks'?`${blockPrompt} ${prefix?'· '+prefix:''}`:mode==='start'?`Choose start word ${prefix?'· '+prefix:''}`:`Choose end word · from “${index.text.slice(startWord.start,startWord.end).slice(0,35)}” ${prefix}`);
-    bar.querySelector('p').textContent=count?`${count} labels · ${paragraphMode?(startWord?'Same label selects one paragraph · ':'Choose start, then end · '):''}Space selects paragraphs / sections / page · ↑ ↓ scroll · Backspace corrects · Esc back`:`No matching visible ${mode==='blocks'?blockKind+'s':'words'}. Scroll to reveal more, or Backspace to correct.`;
+    bar.querySelector('p').textContent=count?`${count} labels · ${paragraphMode?(startWord?`Same label selects one ${blockKind} · `:'Choose start, then end · '):''}Space selects sentences / paragraphs / sections · ↑ ↓ scroll · Backspace corrects · Esc back`:`No matching visible ${mode==='blocks'?blockKind+'s':'words'}. Scroll to reveal more, or Backspace to correct.`;
     if(startWord){const remaining=labels.filter(l=>!l.tag.hidden),target=prefix&&remaining.length===1?remaining[0]:startWord;const r=index.range(Math.min(startWord.start,target.start),Math.max(startWord.end,target.end));paint('preview',r?[r]:[]);}else clearPreview();
   }
   function chooseLabel(item){
     if(mode==='copy-links'){copyLabeledLink(item);return;}
     if(mode==='links'){if(available(item.target)){const inNewTab=newTabHints;clearMode();if(inNewTab&&item.target.matches('a[href]'))attempt(()=>request({type:'navigate',action:'open',target:item.target.href,newTab:true}));else activate(item.target);}else{clearMode();say('That control changed. Press f again.');}return;}
     if(mode==='blocks'){
-      if(blockKind==='paragraph'){
+      if(['paragraph','sentence'].includes(blockKind)){
         if(!startWord){startWord=item;lastPane=scrollPane(index.range(item.start,item.end)?.startContainer.parentElement);prefix='';renderLabels();}
-        else choosePassage(Math.min(startWord.start,item.start),Math.max(startWord.end,item.end),'paragraph');
+        else choosePassage(Math.min(startWord.start,item.start),Math.max(startWord.end,item.end),blockKind);
       }else choosePassage(item.start,item.end,blockKind);
       return;
     }
@@ -428,6 +449,7 @@ function start() {
   function closeDrawer(){drawer?.remove();drawer=null;}
   function pageSidebar(){
     if(drawer){closeDrawer();return;}
+    if(review){review.closeSidebar();annotations();return;}
     if(typeof STUDY_KEYS_PREVIEW!=='undefined'&&STUDY_KEYS_PREVIEW)return annotations();
     request({type:'togglePanel'}).then(result=>{if(result.fallback)annotations();}).catch(e=>say(e.message));
   }
@@ -480,8 +502,10 @@ function start() {
   function jumpMark(name){attempt(()=>navigation.track(async()=>{const result=await request({type:'gotoMark',url,name});if(result.mark){lastPane=await restorePosition(result.mark);hover=lastPane;say('Page mark '+name+' · position restored');}}));}
   function markPicker(){attempt(async()=>{const data=await request({type:'marks',url});const entries=[...Object.entries(data.local).map(([name,mark])=>({name,mark,scope:'This page'})),...Object.entries(data.global).map(([name,mark])=>({name,mark,scope:'Global'}))];if(!entries.length)return say('No marks yet. Use ma for this page or mA for a global mark.');openPicker('Jump to a saved mark',entries.map(({name,mark,scope})=>({label:name+' · '+mark.title,detail:scope+' · '+mark.url,run:()=>jumpMark(name)})));});}
   const navigation=createNavigationUI({request,openPicker,openDialog,closeDialog,el,button,say,paint,consume,attempt,setDialogKey:fn=>dialogKey=fn,seed:()=>hover||document.activeElement,readingBounds:()=>({bottom:bar?bar.getBoundingClientRect().top-12:innerHeight})});
+  review=createReviewUI({surface,openDialog,closeDialog,clearMode,say,beginBlocks,getSelectionState:()=>({index,pending}),setDialogKey:fn=>dialogKey=fn});
   const commands=[
     ...navigation.commands,
+    ...(review?review.commands:[{keys:['Space','r','r'],label:'Review this local document',run:()=>attempt(()=>request({type:'openReview',url}))}]),
     {keys:['v'],label:'Visual mode · choose a passage with labels',run:()=>beginWords()},
     ...['p','s','a'].map(key=>({keys:['Space','v',key],label:{p:'Visually select whole paragraphs',s:'Visually select a heading section',a:'Visually select the whole page'}[key],run:()=>key==='a'?selectPage():beginBlocks(key==='p'?'paragraph':'section')})),
     {keys:['V'],label:'Highlight mode · label a passage and choose a color',run:()=>beginWords(null,'highlight')},
@@ -505,7 +529,7 @@ function start() {
     {keys:['g','i'],label:'Focus a text field · gi first, 2gi second',run:(count=1)=>{const fields=editableFields(),target=fields[count-1];if(target){activate(target);say(`Field ${count} of ${fields.length} · Tab / Shift+Tab move · Ctrl+C returns to Normal`);}else say(fields.length?`Only ${fields.length} editable fields on this page. Use gI to choose a visible field.`:'No editable field found.');}},
     {keys:['g','I'],label:'Label visible text fields · choose one to focus',run:()=>linkHints(false,true)},
     {keys:['Space','p','p'],label:'Play / pause this page’s video or audio',hint:'Play / pause media',run:()=>attempt(async()=>say(await toggleMedia()))},
-    {keys:['y','y'],label:'Copy the current URL',run:()=>attempt(async()=>{await navigator.clipboard.writeText(location.href);say('URL copied');})},
+    {keys:['y','y'],label:'Copy the current URL',run:()=>attempt(async()=>{await navigator.clipboard.writeText(documentURL());say('URL copied');})},
     {keys:['/'],label:'Find literal text · individual occurrences',run:navigation.literal},
     {keys:['n'],label:'Next text match',run:count=>attempt(()=>navigation.nextMatch(1,count))},
     {keys:['N'],label:'Previous text match',run:count=>attempt(()=>navigation.nextMatch(-1,count))},
@@ -532,7 +556,7 @@ function start() {
     }
     // A client-side route may change between the periodic route checks and the
     // next keystroke. Commands must use the article currently on screen.
-    if(enterPage(pageKey(location.href)))load();
+    if(enterPage(pageKey(documentURL())))load();
     // Ctrl+C is the deliberate handoff from website editing to navigation,
     // whether entry began via i, gi, Tab or a mouse click. Never alter the draft.
     const k=keyOf(e);
@@ -569,6 +593,7 @@ function start() {
       if(pending?.kind==='paragraph'&&['j','k','J','K'].includes(k)){consume(e);stepParagraph(k);return;}
       if(k==='h'){consume(e);if(!pending)pending=selectedIndex();if(pending&&canAnnotate()){mode=selectionMode='highlight';getSelection()?.removeAllRanges();renderSelection();}return;}
       if(k==='y'&&pending){consume(e);copyPassage();return;}
+      if(k==='c'&&review){consume(e);if(!pending)pending=selectedIndex();if(pending)review.comment();return;}
       if(k==='n'){consume(e);if(!pending)pending=selectedIndex();if(pending&&canAnnotate())edit(newItem(pending.anchor));return;}
       if(['visual','highlight'].includes(mode)&&k==='e'){consume(e);const selected=pending;const start=wordTokens(index.text).find(t=>t.start===selected.start);beginWords(start,mode);return;}
       if(['visual','highlight'].includes(mode)&&k==='o'){consume(e);beginWords(null,mode);return;}
@@ -594,6 +619,7 @@ function start() {
     // text entry private to its controls while preserving native input defaults.
     const active=shadow.activeElement;
     active?.onkeydown?.(e);
+    if(!e.defaultPrevented)active?.closest('.review-drawer')?.onkeydown?.(e);
     if(!e.defaultPrevented&&dialog&&active?.closest('dialog')===dialog)dialogKey?.(e);
   };
   document.addEventListener('pointerover',e=>{if(e.target instanceof Element&&!e.composedPath().includes(host))hover=e.target;},true);
@@ -625,17 +651,21 @@ function start() {
   observer.observe(document.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['open','hidden','aria-expanded','aria-hidden','class','style']});
   setInterval(()=>{
     if(!connected())return;
-    if(location.href!==routeHref){routeHref=location.href;if(enterPage(pageKey(location.href)))load();}
+    if(location.href!==routeHref){routeHref=location.href;if(enterPage(pageKey(documentURL())))load();}
     if(document.body!==observed){observed=document.body;observer.disconnect();if(observed)observer.observe(observed,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['open','hidden','aria-expanded','aria-hidden','class','style']});}
   },700);
   onDisconnect(()=>{disconnected=true;clearMode();clearTimeout(toastTimer);toast.hidden=true;});
   watch(()=>{if(connected()&&!dialog&&!mode)load();});
   if(typeof chrome!=='undefined'&&chrome.runtime?.onMessage)chrome.runtime.onMessage.addListener((message,sender,respond)=>{
     if(sender.id!==chrome.runtime.id)return;
+    if(message?.type==='readerMessage'){
+      if(readerTabId==null||message.tabId!==readerTabId)return;
+      message=message.payload;
+    }
     if(message?.type==='pageIdentity'){respond({url:location.href});return;}
     if(message?.type==='agentPage'){
       (async()=>{
-        if(pageKey(location.href)!==message.url)throw Error('Requested page navigated. Read its new URL before editing.');
+        if(pageKey(documentURL())!==message.url)throw Error('Requested page navigated. Read its new URL before editing.');
         if(message.action==='read')return readAgentPage();
         if(message.action==='selection')return agentSelection();
         if(message.action==='reveal')return revealAgentSection(message.sectionId);

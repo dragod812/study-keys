@@ -1,3 +1,5 @@
 .integration/
 .pending/
 .DS_Store
+
+.snapshots/

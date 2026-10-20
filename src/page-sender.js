@@ -1,4 +1,5 @@
 import {pageKey,supportedPage} from './core.js';
+import {readerSource} from './review-background.js';
 
 const changed=()=>Object.assign(Error('This action belongs to a different page. Choose it again on the current page.'),{code:'PAGE_CHANGED'});
 
@@ -8,6 +9,11 @@ const changed=()=>Object.assign(Error('This action belongs to a different page. 
 export async function currentPageSender(api,sender,requestedURL){
   if(!sender.tab||sender.frameId!==0||!supportedPage(requestedURL))throw changed();
   const requested=pageKey(requestedURL);
+  const reader=readerSource(sender,api);
+  if(reader){
+    if(reader!==requested||(await api.tabs.get(sender.tab.id)).url!==sender.url)throw changed();
+    return {...sender,url:reader,tab:{...sender.tab,url:reader}};
+  }
   // Older hosts without document identity can only use the original URL.
   if(!sender.documentId&&requested===pageKey(sender.url))return sender;
   if(!sender.documentId||new URL(requestedURL).origin!==new URL(sender.url).origin)throw changed();

@@ -1,4 +1,4 @@
-const EXCLUDE='script,style,noscript,template,svg,canvas,iframe,input,textarea,select,video,audio,[contenteditable]:not([contenteditable="false"]),[role="textbox"],[role="combobox"],[data-study-keys],[hidden],[inert],[aria-hidden="true"]';
+const EXCLUDE='script,style,noscript,template,svg,canvas,iframe,input,textarea,select,video,audio,[contenteditable]:not([contenteditable="false"]),[role="textbox"],[role="combobox"],[data-study-keys],[data-study-keys-ui],[hidden],[inert],[aria-hidden="true"]';
 export const owned=e=>e.composedPath().some(el=>el?.matches?.('input,textarea,select,[contenteditable]:not([contenteditable="false"]),[role="textbox"],[role="combobox"],[role="slider"],video,audio,canvas,iframe,[data-keyboard-owned],.monaco-editor,.cm-editor,.CodeMirror'));
 export function available(el) {
   if(!el?.isConnected||el.closest('[hidden],[inert],[aria-hidden="true"],[data-study-keys]')||el.disabled||el.getAttribute('aria-disabled')==='true')return false;

@@ -21,6 +21,8 @@ class InstallerTests(unittest.TestCase):
                 self.assertTrue(Path(manifest['path']).is_file())
                 self.assertEqual((library/'keep.json').read_text(),'{"note":"keep"}')
                 self.assertTrue((library/'.integration/host.py').is_file())
+                self.assertTrue((library/'.integration/review.py').is_file())
+                self.assertIn('.snapshots/',(library/'.gitignore').read_text().splitlines())
                 self.assertEqual(run.call_args.args[0],['git','init','--quiet','--initial-branch=main',str(library)])
     def test_invalid_platform_id_and_missing_git_do_not_write(self):
         for options in [{'platform':'win32'},{'extension':'bad-id'},{'git':False}]:

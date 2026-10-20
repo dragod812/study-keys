@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Study Keys \u2014 Read, Highlight, Remember",
   "short_name": "Study Keys",
-  "version": "1.6.2",
+  "version": "1.7.0",
   "icons": {
     "16": "icons/16.png",
     "32": "icons/32.png",
@@ -10,7 +10,7 @@
     "128": "icons/128.png"
   },
   "minimum_chrome_version": "131",
-  "description": "Vim-style reading, highlights, notes and Excalidraw notebooks. macOS/Linux beta; local folder helper required.",
+  "description": "Vim navigation, highlights, notes, Excalidraw and local document review. macOS/Linux beta; local folder helper required.",
   "permissions": [
     "storage",
     "unlimitedStorage",
@@ -53,7 +53,7 @@
     }
   ],
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'none'; connect-src 'self'; img-src 'self' data: blob:; font-src 'self' data:; frame-src 'none'; base-uri 'none'"
+    "extension_pages": "script-src 'self'; object-src 'none'; connect-src 'self'; img-src 'self' data: blob:; font-src 'self' data:; frame-src 'self'; base-uri 'none'"
   },
   "web_accessible_resources": [
     {

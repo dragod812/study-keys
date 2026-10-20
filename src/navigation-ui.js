@@ -1,10 +1,11 @@
+import {documentURL} from './document-context.js';
 import {pageKey,supportedPage,COLORS} from './core.js';
 import {capture,headings,passages,findRanges,restoreReading} from './navigation-dom.js';
 import {rankEntries} from './navigation-core.js';
 import {alignReadingTarget} from './reading-alignment.js';
 export function createNavigationUI(ctx){
   const {request,openPicker,openDialog,closeDialog,el,button,say,setDialogKey,consume,paint}=ctx;
-  const send=(action,extra={})=>request({type:'navigation',url:pageKey(location.href),action,...extra});
+  const send=(action,extra={})=>request({type:'navigation',url:pageKey(documentURL()),action,...extra});
   let query='',at=-1,activeRange=null,recording=Promise.resolve();
   const checkpoint=jump=>send('checkpoint',{jump,location:capture(ctx.seed())});
   function remember(){return checkpoint(false).catch(()=>{});}
@@ -40,7 +41,7 @@ export function createNavigationUI(ctx){
     if(!targets.some(target=>alignReadingTarget(target,position,ctx.readingBounds?.())))say('Choose a section with ]] / [[ or select a passage first.');
   }
   function picker(title,provider){return openPicker(title,provider,'',true,{pin:true,onPin:entries=>send('pinResults',{entries:entries.map(e=>e.location)}).then(r=>say(`${r.count} results pinned · Space j / k visits them`))});}
-  function documentSearch(){picker('Search this document',q=>({entries:passages(q).map(p=>({...p,location:{url:pageKey(location.href),anchor:p.anchor},run:()=>track(()=>restoreReading(p))})),coverage:'Current document · loaded readable passages'}));}
+  function documentSearch(){picker('Search this document',q=>({entries:passages(q).map(p=>({...p,location:{url:pageKey(documentURL()),anchor:p.anchor},run:()=>track(()=>restoreReading(p))})),coverage:'Current document · loaded readable passages'}));}
   function tabs(){picker('Switch tabs',async q=>{const result=await send('tabs',{query:q});return {...result,entries:result.entries.map(e=>({...e,location:{tabId:e.tabId,...(supportedPage(e.url)?{url:e.url}:{})},run:()=>go({tabId:e.tabId})}))};});}
   function searchTabs(){picker('Search open tabs',async q=>{const result=await send('search',{query:q});return {...result,entries:result.entries.map(e=>({...e,location:e,run:()=>go(e)}))};});}
   async function jumpList(){const r=await send('jumps');openPicker('Reading jumplist',r.entries.map(e=>({...e,run:()=>send('jump',{index:e.index})})));}
@@ -49,7 +50,7 @@ export function createNavigationUI(ctx){
   async function spots(){const r=await send('spots');openPicker('Quick spots',r.entries.map(e=>({...e,run:()=>send('spotOpen',{slot:e.slot})})), '',true,{remove:e=>send('spotRemove',{slot:e.slot}).then(spots)});}
   async function workspaces(){const r=await send('workspaces');openPicker('Saved study workspaces',r.entries.map(e=>({...e,run:()=>send('workspaceOpen',{id:e.id}).then(r=>say(`${r.count} workspace pages open · ${r.restored} positions restored${r.count>r.restored?' · remaining positions restore as pages load':''}`))})), '',true,{remove:e=>send('workspaceRemove',{id:e.id}).then(workspaces)});}
   async function library(questions=false){
-    const data=await request({type:'navigationLibrary',url:pageKey(location.href)}),entries=[];
+    const data=await request({type:'navigationLibrary',url:pageKey(documentURL())}),entries=[];
     for(const page of data.pages)for(const item of page.items){if(item.archived||(questions&&(item.color!=='red'||item.resolved)))continue;entries.push({url:page.url,color:item.color,note:item.note,drawing:data.drawings.some(d=>d.url===page.url),label:page.title+' · '+(item.anchor?.quote||item.note).slice(0,150),detail:COLORS.find(c=>c.id===item.color)?.label+' · '+item.note,location:{url:page.url,anchor:item.anchor},run:()=>go({url:page.url,anchor:item.anchor}),item});}
     picker(questions?'Unresolved questions':'Search saved highlights and notes',q=>({entries:rankEntries(entries,q),coverage:'Local library · site: · color: · has:note · has:drawing'}));
   }

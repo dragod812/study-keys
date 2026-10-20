@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Study Keys local file store. Only the library root is addressable; no network or arbitrary command API."""
+"""Study Keys local store. Library writes are scoped; review reads need exact-document grants. No network or arbitrary command API."""
 import base64, contextlib, fcntl, hashlib, json, os, re, struct, sys, tempfile, time, subprocess
 import threading
 from pathlib import Path
@@ -232,10 +232,13 @@ class Library:
             if journal.exists():
                 pending = self.read(journal); self.validate(pending); self.apply(pending); journal.unlink()
             op = m.get('op')
+            if isinstance(op, str) and op.startswith('review'):
+                from review import handle
+                return handle(self, m)
             if op == 'toggleVerticalTabs':
                 self.path('.integration', 'vertical-tabs-enabled')
                 return toggle_vertical_tabs(self.root)
-            if op == 'status': return {'folder':str(self.root),'format':'study-keys-folder','version':1,'companionVersion':'1.6.0','mcp':(self.root/'.integration/launch-mcp').is_file()}
+            if op == 'status': return {'folder':str(self.root),'format':'study-keys-folder','version':1,'companionVersion':'1.7.0','mcp':(self.root/'.integration/launch-mcp').is_file()}
             if op == 'get':
                 values = self.get(m.get('key')); return {'values':values,'versions':{k:digest(v) for k,v in values.items()}}
             if op == 'set':
@@ -279,7 +282,7 @@ def run(root):
             if m.get('op')=='bridgeEnable':
                 from bridge import BrowserBridge
                 if bridge is None: bridge=BrowserBridge(store,send)
-                result={'connected':True,'protocol':1,'companionVersion':'1.6.0'}
+                result={'connected':True,'protocol':1,'companionVersion':'1.7.0'}
             elif m.get('op')=='bridgeDisable':
                 if bridge: bridge.close()
                 bridge=None;result={'connected':False}

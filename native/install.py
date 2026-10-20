@@ -13,7 +13,7 @@ if root.is_symlink():raise SystemExit('Use a real ~/.study-keys directory, not a
 root.mkdir(mode=0o700,exist_ok=True)
 integration=root/'.integration';integration.mkdir(mode=0o700,exist_ok=True)
 if integration.is_symlink():raise SystemExit('Integration folder must not be a symlink.')
-for name in ['host.py','bridge.py','mcp_server.py','setup_clients.py']:
+for name in ['host.py','bridge.py','mcp_server.py','setup_clients.py','review.py']:
     target=integration/name
     if target.is_symlink():raise SystemExit('Integration files must not be symbolic links.')
     shutil.copyfile(Path(__file__).with_name(name),target)
@@ -35,6 +35,11 @@ except (OSError,ValueError):pass
 for name in ['README.md','.gitignore']:
     target=root/name
     if not target.exists():shutil.copyfile(Path(__file__).with_name('library-'+name.lstrip('.')),target)
+# Raw review snapshots stay local even when the annotation library is in Git.
+ignore=root/'.gitignore'
+if ignore.is_symlink():raise SystemExit('The library ignore file cannot be a symbolic link.')
+if '.snapshots/' not in ignore.read_text().splitlines():
+    with ignore.open('a') as f:f.write('\n.snapshots/\n')
 if not (root/'.git').exists():subprocess.run(['git','init','--quiet','--initial-branch=main',str(root)],check=True)
 print('Installed local library:',root)
 print('Chrome native host:',location/'com.studykeys.local.json')
