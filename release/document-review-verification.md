@@ -46,7 +46,9 @@ These checks supplement the two-round revision/diff tests above; they do not est
 
 - The 1.7.0 extension ZIP was accepted by the Web Store dashboard after canceling the older pending 1.6.2 review. The published store version remains 1.6.1 until Google approves a newer submission.
 - Listing text, native-messaging justification, single-purpose description and reviewer setup instructions were updated for document review.
-- GitHub release, Pages deployment and final Web Store submission are being completed. Submission is not approval or publication.
+- GitHub release `v1.7.0` is public, with extension/helper ZIPs and checksums. Its target is `552fb6a469d382afbb9e0ab8114c395292784ea5`; a following documentation commit records delivery.
+- GitHub Pages built that commit successfully. The live homepage shows “New in 1.7.0” and the live privacy page describes per-document source/revision access.
+- Chrome Web Store confirmed “Your extension was submitted for review.” Automatic publication after approval was enabled. Submission is not approval or publication; the last verified published store version is 1.6.1.
 
 ## Intentional first-release limits
 
