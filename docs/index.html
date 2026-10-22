@@ -21,13 +21,13 @@
 <a class="cta" href="#setup">Get started</a>
 <a class="cta secondary" href="https://github.com/dragod812/study-keys">View the repository</a>
 <p class="notice">
-<strong>macOS / Linux beta.</strong> Requires Chrome 131+, Python 3.11+, Git, and a separate local helper. Version 1.7.0 adds local document review. See the GitHub release for the current package; Chrome Web Store updates are subject to Google’s review. The helper is required for saving.</p>
+<strong>macOS / Linux beta.</strong> Requires Chrome 131+, Python 3.11+, Git, and a separate local helper. Version 1.7.1 simplifies local document review. See the GitHub release for the current package; Chrome Web Store updates are subject to Google’s review. The helper is required for saving.</p>
 </section>
 <section class="release-note">
-<div class="eyebrow">New in 1.7.0</div>
+<div class="eyebrow">New in 1.7.1</div>
 <h2>Read the draft. Shape the next revision.</h2>
-<p>Review local Markdown and HTML with the same visual labels you use for reading. Comment on sentences, paragraphs or sections, copy a source-aware agent prompt, and compare the next revision with the last handoff—or with Git’s staged and unstaged changes. Your original comment locations stay attached to the reviewed revision.</p>
-<a href="https://github.com/dragod812/study-keys/releases/tag/v1.7.0">See the release and downloads →</a>
+<p>Review local Markdown and HTML with the same visual labels you use for reading. Comment on sentences, paragraphs or sections, copy a source-aware agent prompt, and see unstaged changes directly in the rendered document. Green underlines mark additions; red strikethrough marks removals. Diagrams remain rendered, and you can stage just the current file from the reader. Your original comment locations stay attached to the reviewed revision.</p>
+<a href="https://github.com/dragod812/study-keys/releases">See the release and downloads →</a>
 </section>
 <div class="palette">
 <span style="background:#ffe9a1">1 · Key idea</span>
@@ -79,11 +79,11 @@
 </section>
 <section id="review">
 <h2>A review loop for AI-generated documents.</h2>
-<img class="screenshot" src="assets/review.png" alt="Study Keys showing staged changes and source-anchored review comments">
+<img class="screenshot" src="assets/review.png" alt="Study Keys showing rendered unstaged changes and diagrams">
 <p>Open a local file and press <kbd>Space r r</kbd>. Read, select with <kbd>v</kbd>, and press <kbd>c</kbd> to comment. Use <kbd>v Space t</kbd> for sentences, <kbd>v Space p</kbd> for paragraphs, or <kbd>v Space s</kbd> for a heading section.</p>
-<p><kbd>Ctrl+Enter</kbd> saves feedback. <kbd>Space r c</kbd> opens the review sidebar; <kbd>y</kbd> there copies the agent handoff. It includes the reviewed source hash, lines, quotes and comments, and asks the agent to stage only the reviewed file before making new edits. Study Keys itself never stages or changes your source.</p>
-<p><kbd>Space r e</kbd> loads the latest revision. <kbd>Space r d</kbd> shows changes only, including deletions. Compare with the last handoff, Git’s index or HEAD, and resolve comments after checking the result.</p>
-<p>Requires the 1.7.0 helper and an explicit grant for each document. UTF-8 files up to 2 MiB; one document per handoff. HTML uses a safe static reading view; original styles, scripts and remote images are not executed. Back up the local library including <code>.snapshots</code> to preserve comparisons; annotation JSON exports do not yet include reviews.</p>
+<p><kbd>Ctrl+Enter</kbd> saves feedback. <kbd>Space r c</kbd> opens the review sidebar; <kbd>y</kbd> there copies the agent handoff. It includes the file, lines, quoted passages and comments. There are no Git checks or staging instructions in the prompt. Use visual selection followed by <kbd>1–6</kbd> for your usual highlights.</p>
+<p><kbd>Space r e</kbd> loads the latest file. Inside Git, additions are underlined green and removed text has translucent red strikethrough. Images and Mermaid diagrams stay rendered with red/green frames. <kbd>Space r d</kbd> shows changes only; <kbd>Space r g</kbd> or <strong>Stage file</strong> stages only this document. Outside Git, simply read, highlight and comment—no Git controls or setup.</p>
+<p>Requires the 1.7.1 helper and an explicit grant for each document. UTF-8 files up to 2 MiB; one document per handoff. HTML uses a safe static reading view; original styles and scripts are not executed. Referenced images (up to 8 MiB each), SVG and Mermaid diagrams are supported. Remote image requests omit cookies and referrers; unavailable images retain their captions. Back up the local library including <code>.snapshots</code> to preserve review history; annotation JSON exports do not yet include reviews.</p>
 </section>
 <section id="navigation">
 <h2>Your reading desk, a few keys away.</h2>
@@ -91,7 +91,7 @@
 <p>Press <kbd>Space</kbd> to discover the commands. Type each key in sequence; use <kbd>Esc</kbd> to close a picker.</p>
 <div class="shortcut-table">
 <table>
-<caption>Navigation shortcuts in version 1.7.0</caption>
+<caption>Navigation shortcuts in version 1.7.1</caption>
 <thead>
 <tr>
 <th scope="col">Keys</th>
@@ -185,7 +185,7 @@
 <section id="local-documents">
 <h2>Your local documents, too.</h2>
 <p>Open HTML or Markdown files directly. Study Keys renders plain Markdown; an existing Markdown Viewer may also supply the reading view. Enable <strong>Allow access to file URLs</strong> in Study Keys’ extension details; Markdown Viewer needs its own file access enabled. Highlights, notes, notebooks and reading positions work on the rendered document.</p>
-<p>The companion saves annotations under <code>~/.study-keys/pages/local-files/</code>. It leaves source files unchanged and does not scan folders. Update the helper for 1.7.0 document review. Source access is granted per document and can be revoked in the reader; comparison never changes the Git index.</p>
+<p>The companion saves annotations under <code>~/.study-keys/pages/local-files/</code>. It leaves source files unchanged and does not scan folders. Update the helper for 1.7.1 document review. Source access is granted per document and can be revoked in the reader. Reading never changes the index; the explicit Stage file action stages only the open document.</p>
 </section>
 <section id="agents">
 <h2>Study with your agent. Keep one notebook.</h2>
@@ -197,7 +197,7 @@
 <section id="setup">
 <h2>Set up once. Keep learning.</h2>
 <ol>
-<li>Install from the <a href="https://chromewebstore.google.com/detail/jcjililghkknjbifgcnnkipiblmmmhid">Chrome Web Store</a> or download the <a href="https://github.com/dragod812/study-keys/releases/tag/v1.7.0">latest beta release</a>. For 1.7.0 before store approval, extract the extension ZIP and load its folder using <strong>chrome://extensions → Developer mode → Load unpacked</strong>.</li>
+<li>Install from the <a href="https://chromewebstore.google.com/detail/jcjililghkknjbifgcnnkipiblmmmhid">Chrome Web Store</a> or download the <a href="https://github.com/dragod812/study-keys/releases">latest beta release</a>. For a release before store approval, extract the extension ZIP and load its folder using <strong>chrome://extensions → Developer mode → Load unpacked</strong>.</li>
 <li>Open <strong>Study Keys → Set up local folder</strong> from the toolbar. Download the local helper ZIP and extract it.</li>
 <li>In a terminal in that folder, run the exact command shown on the setup page. It includes your extension’s ID.</li>
 <li>Click <strong>Check connection</strong>, then reload your reading tabs. Disable other Vim keyboard extensions to avoid conflicts.</li>

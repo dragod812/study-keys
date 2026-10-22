@@ -238,7 +238,7 @@ class Library:
             if op == 'toggleVerticalTabs':
                 self.path('.integration', 'vertical-tabs-enabled')
                 return toggle_vertical_tabs(self.root)
-            if op == 'status': return {'folder':str(self.root),'format':'study-keys-folder','version':1,'companionVersion':'1.7.0','mcp':(self.root/'.integration/launch-mcp').is_file()}
+            if op == 'status': return {'folder':str(self.root),'format':'study-keys-folder','version':1,'companionVersion':'1.7.1','mcp':(self.root/'.integration/launch-mcp').is_file()}
             if op == 'get':
                 values = self.get(m.get('key')); return {'values':values,'versions':{k:digest(v) for k,v in values.items()}}
             if op == 'set':
@@ -282,7 +282,7 @@ def run(root):
             if m.get('op')=='bridgeEnable':
                 from bridge import BrowserBridge
                 if bridge is None: bridge=BrowserBridge(store,send)
-                result={'connected':True,'protocol':1,'companionVersion':'1.7.0'}
+                result={'connected':True,'protocol':1,'companionVersion':'1.7.1'}
             elif m.get('op')=='bridgeDisable':
                 if bridge: bridge.close()
                 bridge=None;result={'connected':False}

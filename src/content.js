@@ -19,7 +19,8 @@ import {editableFields,activeElement,returnToNormalKey} from './focus.js';
 import {toggleMedia} from './media.js';
 import {documentURL,reviewDocument} from './document-context.js';
 import {prepareReview,createReviewUI} from './review-ui.js';
-import {renderDocument} from './review-render.js';
+import {renderDocument,loadReviewMedia} from './review-render.js';
+import {reviewAnnotationAnchor,resolveReviewAnnotation} from './review-anchors.js';
 import readerCSS from '../review.css';
 
 // The isolated content-script world owns reading state. Ordinary websites keep
@@ -38,6 +39,7 @@ async function ready(){
     const source=document.body.firstElementChild.textContent,article=document.createElement('main');article.id='review-document';
     renderDocument(article,source,false);document.body.replaceChildren(article);
     const style=document.createElement('style');style.textContent=readerCSS;document.head.append(style);
+    await loadReviewMedia(article);
   }
   start();
 }
@@ -122,7 +124,7 @@ function start() {
     const restoredIndex=buildIndex();
     const groups=Object.fromEntries(COLORS.map(c=>[c.id,[]])),regions=[];
     for(const item of items.filter(i=>!i.archived&&i.anchor)){
-      const match=resolveAnchor(restoredIndex.text,item.anchor),range=match&&restoredIndex.range(match.start,match.end);
+      const match=review?resolveReviewAnnotation(restoredIndex,item.anchor):resolveAnchor(restoredIndex.text,item.anchor),range=match&&restoredIndex.range(match.start,match.end);
       if(range){resolved.set(item.id,range);regions.push({...match,color:item.color,updatedAt:item.updatedAt,id:item.id});}
     }
     for(const segment of highlightSegments(regions)){const r=restoredIndex.range(segment.start,segment.end);if(r)groups[segment.color].push(r);}
@@ -141,14 +143,14 @@ function start() {
     if(!pending){const selection=selectedIndex();if(selection)pending=selection;}
     if(!pending)return say('Press v, choose start and end labels, then a color.');
     if(!canAnnotate())return;
-    const anchor=pending.anchor;
+    const anchor=review?reviewAnnotationAnchor(index,pending.start,pending.end):pending.anchor;
     writingHighlight=true;
     try{await save(newItem(anchor,color));clearMode();getSelection()?.removeAllRanges();say(`${COLORS.find(c=>c.id===color).label} saved on this device`);}
     catch(e){say(e.message);}finally{writingHighlight=false;}
   }
   function copyPassage(){if(!refreshSelection(true)||!pending)return;const text=selectionText(index,pending.start,pending.end);attempt(async()=>{await navigator.clipboard.writeText(text);clearMode();say('Selection copied · NORMAL mode');});}
   function canAnnotate(){if(pending?.anchor.quote.length>100000){say('This selection is ready to copy. Select a smaller section to highlight or add a note (100,000 characters maximum).');return false;}return true;}
-  function noteSelection(){if(refreshSelection(true)&&canAnnotate())edit(newItem(pending.anchor));}
+  function noteSelection(){if(refreshSelection(true)&&canAnnotate())edit(newItem(review?reviewAnnotationAnchor(index,pending.start,pending.end):pending.anchor));}
   function renderSelection(){
     const highlighting=mode==='highlight';
     makeBar(highlighting?'HIGHLIGHT · choose a color':'VISUAL · '+(pending.kind||'passage')+' selected',highlighting?'1–6 save color · n add note · e change end · o change start · Esc visual mode':'y copy · h highlight · n note · p paragraph · s section · a whole page · Space selection menu · Esc normal');

@@ -9,6 +9,7 @@ await mkdir('dist/icons',{recursive:true});
 for(const size of [16,32,48,128])await copyFile(`icons/${size}.png`,`dist/icons/${size}.png`);
 for(const name of ['manifest.json','highlights.css','library.html','library.css','popup.html','panel.html','panel.css','notebook.html','setup.html','setup.css','privacy.html','review.html','review.css'])await copyFile(name,'dist/'+name);
 await build({entryPoints:['src/content.js'],bundle:true,format:'iife',target:'chrome131',outfile:'dist/content.js',loader:{'.css':'text'},logLevel:'warning'});
+await build({entryPoints:['src/review-media.js'],bundle:true,format:'esm',target:'chrome131',outfile:'dist/review-media.js',minify:true,logLevel:'warning'});
 for(const name of ['background','library','popup','panel','setup'])await build({entryPoints:['src/'+name+'.js'],bundle:true,format:'esm',target:'chrome131',outfile:'dist/'+name+'.js',logLevel:'warning'});
 await buildDrawing('dist/drawing');
 await mkdir('dist/native',{recursive:true});

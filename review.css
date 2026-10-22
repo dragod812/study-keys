@@ -14,7 +14,18 @@ button:hover,button[aria-pressed=true]{border-color:var(--accent);color:var(--ac
 #review-document table{display:block;max-width:100%;overflow:auto;border-collapse:collapse;font-size:.9em}th,td{border:1px solid var(--line);padding:8px 14px;text-align:left}
 .review-line{display:block;position:relative;padding-left:62px;white-space:pre-wrap;font:13px/1.75 ui-monospace,monospace;min-height:1.75em}
 .review-line::before{content:attr(data-line-label);position:absolute;left:0;width:50px;text-align:right;color:var(--muted);user-select:none;opacity:.75}
-.review-line[data-change=add]{background:var(--add)}.review-line[data-change=delete]{background:var(--del)}
+#review-document [data-change=add]{text-decoration-line:underline;text-decoration-color:#1aa35e;text-decoration-thickness:2px;text-underline-offset:4px;background:rgba(34,170,94,.045)}
+#review-document [data-change=delete]{text-decoration-line:line-through;text-decoration-color:#e44b5f;text-decoration-thickness:2px;opacity:.64;background:rgba(224,64,84,.045)}
+#review-document [data-change=delete] [data-change=delete]{opacity:1}
+#review-document span[data-change=delete]+span[data-change=add]{margin-left:.2em}
+.review-media{display:inline-block;position:relative;max-width:100%;vertical-align:middle;margin:12px 4px 12px 0;padding:10px;border:1px solid var(--line);border-radius:8px;text-decoration:none;overflow:auto}
+.review-media img{display:block;max-width:100%;max-height:720px;height:auto;margin:auto}
+.review-media[data-review-media=mermaid] img{background:#fff;border-radius:4px;padding:8px}
+#review-document .review-media[data-change]{text-decoration:none}
+.review-media[data-change=add],[data-change=add] .review-media{border:2px solid #1aa35e;background:rgba(34,170,94,.08)}
+.review-media[data-change=delete],[data-change=delete] .review-media{border:2px solid #e44b5f;background:rgba(224,64,84,.08)}
+.review-media-label{display:flow-root;font:600 10px/1.5 system-ui;text-decoration:none;margin-top:8px;text-align:center;letter-spacing:.04em}
+[data-change=add] .review-media-label{color:#168149}[data-change=delete] .review-media-label{color:#d6384d}
 .review-gap{font:12px system-ui;color:var(--muted);padding:12px 0;border-block:1px dashed var(--line)}
 .review-image{display:block;font-size:.85em;color:var(--muted);padding:12px;border:1px dashed var(--line)}
 .review-line[data-current-comment], [data-source-start][data-current-comment]{outline:2px solid var(--accent);outline-offset:4px}

@@ -296,19 +296,19 @@ Use `gI` when you can see several text boxes and want to choose one directly. Us
 
 `Space p p` controls one HTML video/audio element in the current page; cross-origin embedded players and other tabs are outside this shortcut’s scope. Normal-mode shortcut keydown, keypress and keyup events remain isolated from website player shortcuts. Shift and Caps Lock no longer cancel a command prefix before an uppercase key.
 
-## Review local documents (1.7.0)
+## Review local documents (1.7.1)
 
 Open a local Markdown or HTML file, then press **Space r r** (or choose **Review local document** in the extension popup). Plain Markdown opened in Chrome is rendered by Study Keys automatically. The review reader uses the same file identity for highlights, notes and the existing drawing notebook.
 
-Update the local helper for this release. The reader asks permission for the exact document before reading its UTF-8 source and its Git revisions. It never edits the source, stages files, commits, or runs commands supplied by a page. Source access can be revoked in the reader.
+Update the local helper for this release. The reader asks permission for the exact document before reading its UTF-8 source, referenced images and Git index version. Source access can be revoked in the reader. The source is never edited; staging happens only when you choose **Stage file** or **Space r g**, and affects that document alone.
 
 1. Read the document. Press **v**, choose word endpoints, then **c** to comment. **v Space t** selects sentence endpoints; **v Space p** selects paragraph endpoints; **v Space s** selects a heading section. In the reader, **c** starts paragraph selection and **C** adds a whole-file comment.
 2. Write feedback and press **Ctrl+Enter** or **Cmd+Enter** to save. **Ctrl+C** or Escape leaves a recoverable draft. Open **Space r c** to resume it.
 3. Open the review sidebar with **Space r c**, then press **y** to copy the handoff. **Space r y** works anywhere in Normal mode. Visual **y** still copies selected text; **yy** still copies the file URL.
    **View last handoff** reopens the saved prompt for copying or downloading, including when browser clipboard access is unavailable.
-4. The prompt asks the agent to verify the reviewed SHA-256, inspect the index, stage only this reviewed file, then address each comment and leave the resulting edits unstaged. Partial staging and conflicts require a deliberate decision instead of being overwritten. Copying does not execute the prompt. Each handoff is saved as an immutable round.
-5. After the agent edits, use **Space r e** to load the latest revision. Review additions and deletions against the last handoff. The comparison selector also offers unstaged (index → working file), staged (HEAD → index), and all changes (HEAD → working file). Non-Git files use saved handoff snapshots.
-6. Resolve or reopen comments yourself. Old comments retain their original revision, source lines, selected quote and heading. Comments on deleted lines remain attached to the earlier revision.
+4. The prompt contains the document path, source lines, quoted passages, sections and your comments. It has no Git commands, SHA checks or staging instructions. You can copy feedback after the source changes; line numbers are references, not requirements. Each handoff is saved as an immutable round.
+5. After the agent edits, use **Space r e** to load the latest revision. Inside a Git repository, reading shows unstaged changes against the index: additions have green underlines and removals have slightly transparent red strikethrough. Images, SVG and Mermaid diagrams remain rendered with red/green frames for previous/current versions. **Space r d** filters to changed content. **Stage file** stages all current changes to this document, including any previously unstaged portions; other files remain untouched. Outside Git, no diff, staging controls or Git setup appears.
+6. Select with **v**, then **1–6** to save your usual color highlights. Resolve or reopen comments yourself. Old comments retain their original revision, source lines, selected quote and heading. Comments on deleted lines remain attached to the earlier revision.
 
 | Keys | Review action |
 | --- | --- |
@@ -316,13 +316,13 @@ Update the local helper for this release. The reader asks permission for the exa
 | Space r c | Toggle review comments |
 | Space r d | Toggle changes only / reading |
 | Space r v | Toggle source / rendered reading |
-| Space r b | Focus the comparison selector |
+| Space r g | Stage this document only (inside Git) |
 | Space r e | Load the latest source revision |
 | Space r y | Copy agent handoff |
 | ]c / [c | Next / previous changed line |
 | ]r / [r | Next / previous review comment |
 | Space r a / Space r u | Resolve / reopen selected comment |
 
-Reviews are stored beside each local document’s annotations in `~/.study-keys/pages/local-files/<document>/review/review.json`. This contains comments, drafts and immutable handoff prompts. Raw source snapshots live in `~/.study-keys/.snapshots/`, excluded from Git by the updated installer. **Back up the folder, including .snapshots, to preserve review comparisons.** Existing annotation JSON exports do not yet include review records or snapshots.
+Reviews are stored beside each local document’s annotations in `~/.study-keys/pages/local-files/<document>/review/review.json`. This contains comments, drafts and immutable handoff prompts. Raw source snapshots live in `~/.study-keys/.snapshots/`, excluded from Git by the updated installer. **Back up the folder, including .snapshots, to preserve review history.** Existing annotation JSON exports do not yet include review records or snapshots.
 
-The reader supports UTF-8 regular files up to 2 MiB. Symlink paths are rejected; open the real file path. Markdown has tables, code blocks, lists and inline formatting. HTML review is a static reading view: scripts, page styles, embedded applications and remote images do not run or load in the extension. Use **Original ↗** for the original HTML presentation. Some rendered selections map to a source block rather than exact lines; the comment labels that distinction. A review handoff currently covers one document. No automatic AI execution, project-wide review batch, Markdown math, or Mermaid rendering is claimed.
+The reader supports UTF-8 regular files up to 2 MiB. Symlink paths are rejected; open the real file path. Markdown has tables, code blocks, lists and inline formatting. HTML review is a static reading view: scripts, page styles and embedded applications do not execute. Referenced local images (up to 8 MiB each), inline SVG and Mermaid diagrams are rendered. Remote images are fetched without cookies or referrer when their server allows it; unavailable media retains its caption/source. Use **Original ↗** for the original HTML presentation. Some rendered selections map to a source block rather than exact lines; the comment labels that distinction. A review handoff currently covers one document. No automatic AI execution, project-wide review batch or Markdown math is claimed. Staging the document does not stage separate image files.

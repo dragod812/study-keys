@@ -1,5 +1,7 @@
 > Implementation update (2026-10-20): the 1.7.0 candidate implements the single-document reader, source-anchored comments, immutable handoffs, Git comparisons, and exact-document grants. Automated and preview E2E testing is recorded in release/document-review-verification.md. Project-wide review batches, review-specific MCP tools, math/Mermaid, and richer original HTML presentation remain future work. Installed Chrome and public release are pending the final gate.
 
+> 1.7.1 supersedes the Git verification and baseline-selection workflow below. Handoffs contain feedback and source locations only. Git-aware reading compares the index with the working file, renders green additions and translucent red deletions including diagrams, and offers explicit single-file staging. Non-Git documents have no Git controls or diff. Historical design follows.
+
 # Study Keys Review
 
 Status: product and implementation proposal, October 20, 2026. This document describes a new capability; it is not implemented in 1.6.2.

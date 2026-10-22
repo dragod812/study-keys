@@ -1,13 +1,34 @@
 import {request} from './transport.js';
 import {reviewDocument} from './document-context.js';
-import {changedLines,comparison,makePrompt,sourceHash,reviewEditorCommand} from './review-model.js';
-import {renderDocument,renderLines,locationForSelection} from './review-render.js';
+import {changedLines,makePrompt,sourceHash,reviewEditorCommand} from './review-model.js';
+import {renderDocument,renderLines,loadReviewMedia,locationForSelection} from './review-render.js';
+import {stampVersion,renderRichDiff} from './review-diff.js';
 import {reviewDrafts} from './review-drafts.js';
 
 let session=null;
 const node=(tag,text,cls)=>{const n=document.createElement(tag);if(text!=null)n.textContent=text;if(cls)n.className=cls;return n;};
 const button=(text,run)=>{const n=node('button',text);n.type='button';n.onclick=run;return n;};
 const call=(action,extra={})=>request({type:'review',action,url:reviewDocument(),...extra});
+const versionsFor=data=>({before:{source:data.git?.index??data.document.source,hash:data.git?.indexHash??data.document.hash},after:data.document});
+async function renderedReview(target,data,onlyChanges=false){
+  const versions=versionsFor(data),html=/\.html?$/i.test(data.document.path),cache=new Map();
+  const loadAsset=side=>ref=>{
+    const key=side+':'+ref;if(cache.has(key))return cache.get(key);
+    const promise=(async()=>{
+      let value=await call('reviewAsset',{ref,side});if(value.data||value.missing)return value;
+      const chunks=[value.chunk],hash=value.hash,mime=value.mime;
+      while(value.next!=null){value=await call('reviewAsset',{ref,side,offset:value.next});chunks.push(value.chunk);}
+      return {data:'data:'+mime+';base64,'+chunks.join(''),hash};
+    })();cache.set(key,promise);return promise;
+  };
+  const after=node('div');renderDocument(after,versions.after.source,html);stampVersion(after,'after',versions.after);
+  await loadReviewMedia(after,loadAsset('after'));
+  if(!data.git){target.replaceChildren(...after.childNodes);return;}
+  const before=node('div');renderDocument(before,versions.before.source,html);stampVersion(before,'before',versions.before);
+  await loadReviewMedia(before,loadAsset('before'));
+  const changes=renderRichDiff(target,before,after,{onlyChanges});
+  if(onlyChanges&&!changes)target.append(node('p','No unstaged changes in this document.'));
+}
 
 export async function prepareReview(){
   if(!reviewDocument())return;
@@ -21,7 +42,7 @@ export async function prepareReview(){
     try{
       const data=await call('reviewLoad');
       if(!data.needsGrant){session=data;break;}
-      status.textContent=`Review needs read access to this file and its Git revisions:\n${data.path}\nThe source and Git index stay unchanged. Comments and snapshots are saved in ~/.study-keys.`;
+      status.textContent=`Allow reading this document and its referenced images:\n${data.path}\nComments are saved in ~/.study-keys. Your source is not edited.`;
       await new Promise(resolve=>{
         controls.replaceChildren(button('Allow this document',async()=>{
           try{session=await call('reviewGrant');resolve();}catch(e){status.textContent=e.message;}
@@ -32,19 +53,19 @@ export async function prepareReview(){
       await new Promise(resolve=>controls.replaceChildren(button('Retry connection',resolve)));
     }
   }
-  renderDocument(document.querySelector('#review-document'),session.document.source,/\.html?$/i.test(session.document.path));
+  await renderedReview(document.querySelector('#review-document'),session);
 }
 
 export function createReviewUI({surface,openDialog,closeDialog,clearMode,say,beginBlocks,getSelectionState,setDialogKey}){
   if(!session)return null;
-  let data=session,state=data.state,sidebar=null,view='rendered',baseline='handoff',versions=null,
-      queue=Promise.resolve(),draftTimer,selectedId=null,polling=false,selectionComment=false,saveError=null;
+  let data=session,state=data.state,sidebar=null,view='rendered',versions=versionsFor(data),
+      queue=Promise.resolve(),draftTimer,selectedId=null,polling=false,selectionComment=false,saveError=null,staging=false,renderNumber=0;
   const doc=document.querySelector('#review-document'),controls=document.querySelector('#review-controls'),
     status=document.querySelector('#review-status'),drafts=reviewDrafts(localStorage,data.document.url);
   const run=fn=>Promise.resolve().then(fn).catch(e=>{say(e.message);status.textContent=e.message;});
   const openComments=()=>state.comments.filter(c=>c.status==='open');
   function updateStatus(extra=''){
-    status.textContent=`${state.comments.length} comments · ${openComments().length} open · ${state.rounds.length} handoffs · Saved locally${extra?' · '+extra:''}`;
+    status.textContent=`${state.comments.length} comments · ${openComments().length} open · Saved locally${data.git?' · Unstaged: green additions / red deletions':''}${extra?' · '+extra:''}`;
   }
   function persist(){
     queue=queue.catch(()=>{}).then(async()=>{
@@ -66,34 +87,27 @@ export function createReviewUI({surface,openDialog,closeDialog,clearMode,say,beg
     if(matching||!state.draft)state.draft=matching||recovered[0]||null;
   }catch{}
   async function render(){
+    const number=++renderNumber,target=node('div');
     clearMode();
-    if(view==='rendered')renderDocument(doc,data.document.source,/\.html?$/i.test(data.document.path));
-    else if(view==='source'){
-      // Full source is always available, even if Git or an old snapshot cannot
-      // be compared. Its selection anchors belong to the working revision.
-      versions={before:data.document,after:data.document};
-      renderLines(doc,data.document.source.split(/\r?\n/).map((text,i)=>({text,newLine:i+1,change:'same'})),
+    versions=versionsFor(data);
+    if(view==='source'){
+      const rows=data.git?changedLines(versions.before.source,versions.after.source):
+        data.document.source.split(/\r?\n/).map((text,i)=>({text,newLine:i+1,change:'same'}));
+      renderLines(target,rows,
         versions.before,versions.after);
-    }else{
-      versions=comparison(data,baseline);
-      for(const v of Object.values(versions))v.hash??=await sourceHash(v.source);
-      const rows=changedLines(versions.before.source,versions.after.source,true);
-      renderLines(doc,rows,versions.before,versions.after);
-      if(!rows.some(r=>!r.gap))doc.append(node('p','No changes in this comparison.'));
-    }
+    }else await renderedReview(target,data,view==='changes'&&!!data.git);
+    if(number!==renderNumber)return;
+    doc.replaceChildren(...target.childNodes);
     renderControls();updateStatus();
   }
   function renderControls(){
     controls.replaceChildren();
-    for(const [id,text] of [['rendered','Read'],['source','Source'],['changes','Changes only']]){
+    for(const [id,text] of [['rendered','Read'],['source','Source'],...(data.git?[['changes','Changes only']]:[])]){
       const b=button(text,()=>run(async()=>{view=id;await render();}));b.setAttribute('aria-pressed',String(view===id));controls.append(b);
     }
-    const select=node('select');select.setAttribute('aria-label','Compare revisions');
-    for(const [id,text] of [['handoff','Since handoff'],['unstaged','Unstaged · index → file'],['staged','Staged · HEAD → index'],['head','All · HEAD → file']]){
-      const option=node('option',text);option.value=id;option.disabled=id!=='handoff'&&!data.git;select.append(option);
-    }
-    select.value=baseline;select.onchange=()=>run(async()=>{baseline=select.value;view='changes';await render();});
-    controls.append(select,button(`Comments (${openComments().length})`,toggleSidebar),
+    if(data.git){const stage=button(staging?'Staging…':'Stage file · Space r g',()=>run(stageFile));stage.disabled=staging;
+      stage.title='git add — only this document, including all its current changes';controls.append(stage);}
+    controls.append(button(`Comments (${openComments().length})`,toggleSidebar),
       button('Add comment · C',()=>comment()),button('Copy handoff',()=>run(copyHandoff)),
       button('Load latest',()=>run(latest)),button('Original ↗',()=>request({type:'navigate',action:'open',target:data.document.url,newTab:true})),
       button('Revoke source access',()=>run(async()=>{
@@ -115,7 +129,7 @@ export function createReviewUI({surface,openDialog,closeDialog,clearMode,say,beg
     if(!state.comments.length)sidebar.append(node('p','Select a passage with v, then c to comment. C adds a comment about the whole file.'));
     for(const c of state.comments){
       const card=node('section',null,'review-comment');card.dataset.id=c.id;card.dataset.selected=String(c.id===selectedId);
-      const jump=button(`${c.status==='resolved'?'✓ ':'○ '}${c.line?`Lines ${c.line}–${c.endLine}`:'Whole document'} · ${c.hash.slice(0,7)}`,()=>reveal(c));
+      const jump=button(`${c.status==='resolved'?'✓ ':'○ '}${c.line?`Lines ${c.line}–${c.endLine}`:'Whole document'}`,()=>reveal(c));
       card.append(jump);
       if(c.quote)card.append(node('blockquote',c.quote));
       card.append(node('p',c.text),button('Edit',()=>edit(c)),button(c.status==='open'?'Resolve':'Reopen',()=>run(()=>setStatus(c,c.status==='open'?'resolved':'open'))));
@@ -151,7 +165,7 @@ export function createReviewUI({surface,openDialog,closeDialog,clearMode,say,beg
       all.filter(n=>c.quote&&n.textContent.includes(c.quote));
     const target=candidates.sort((a,b)=>a.textContent.length-b.textContent.length)[0];
     if(target){target.dataset.currentComment='';target.scrollIntoView({block:'center'});}
-    else say('The original location is in revision '+c.hash.slice(0,7)+'. The saved quote is kept in this comment.');
+    else say('This passage has changed. Its original quote is saved with the comment.');
     renderSidebar();
   }
   function comment(selection=null,resume=false){
@@ -168,7 +182,7 @@ export function createReviewUI({surface,openDialog,closeDialog,clearMode,say,beg
     const box=openDialog(comment.text?'Edit review comment':'Add review comment');if(!box)return;
     const draft={...comment},input=node('textarea');
     input.setAttribute('aria-label','Review comment');input.placeholder='What should the agent change, and why?';input.rows=6;input.maxLength=100000;input.value=draft.text;
-    box.append(node('p',draft.line?`Source lines ${draft.line}–${draft.endLine} · ${draft.quality} · ${draft.hash.slice(0,7)}`:'Whole-document comment','muted'));
+    box.append(node('p',draft.line?`Source lines ${draft.line}–${draft.endLine} · ${draft.quality}`:'Whole-document comment','muted'));
     if(draft.quote)box.append(node('blockquote',draft.quote,'review-quote'));
     const message=node('p','Ctrl+Enter saves · Ctrl+C returns to navigation with your draft kept','muted');
     let saving=false;
@@ -207,20 +221,14 @@ export function createReviewUI({surface,openDialog,closeDialog,clearMode,say,beg
   async function copyHandoff(){
     clearTimeout(draftTimer);await persist();
     if(state.draft?.text?.trim())throw Error('Save or discard your comment draft before copying the handoff.');
-    const probe=await call('reviewProbe');if(probe.hash!==data.document.hash)throw Error('The source changed. Load latest before copying a new handoff.');
-    const signature=await sourceHash(JSON.stringify({hash:data.document.hash,comments:state.comments}));
+    const signature=await sourceHash(JSON.stringify({format:2,comments:state.comments}));
     let round=state.rounds.at(-1);
     if(round?.signature!==signature){
-      // Refresh Git state so partial staging after opening the reader is visible.
-      const fresh=await call('reviewLoad');
-      if(fresh.document.hash!==data.document.hash)throw Error('The source changed. Load latest before copying the handoff.');
-      data.git=fresh.git;
       round={id:crypto.randomUUID(),number:state.rounds.length+1,hash:data.document.hash,signature,
         createdAt:Date.now(),prompt:makePrompt(data,state.comments,state.rounds.length+1)};
       state.rounds.push(round);
       try{await persist();}catch(e){state.rounds.pop();throw e;}
       data.previous=data.document.source;data.previousHash=data.document.hash;
-      if(view==='changes')await render();
     }
     try{await navigator.clipboard.writeText(round.prompt);}
     catch{showHandoff(round,'Clipboard access is unavailable. Copy the selected text or download the prompt.');return;}
@@ -250,15 +258,23 @@ export function createReviewUI({surface,openDialog,closeDialog,clearMode,say,beg
     const changed=fresh.document.hash!==data.document.hash;
     data=fresh;state=fresh.state;session=fresh;saveError=null;
     if(draft){state.draft=draft;await persist();}
-    if(changed&&state.rounds.length){view='changes';baseline='handoff';}
+    if(!data.git&&view==='changes')view='rendered';
     await render();renderSidebar();say(changed?'Latest revision loaded. Original comment locations are preserved.':'You have the latest revision.');
+  }
+  async function stageFile(){
+    if(!data.git||staging)return;
+    staging=true;renderControls();
+    try{
+      const result=await call('reviewStage');
+      if(result.staged){await latest();say('Staged this file. Other files were not staged.');}
+    }finally{staging=false;renderControls();}
   }
   function stepComment(direction){
     const i=state.comments.findIndex(c=>c.id===selectedId);
     const c=state.comments[(i+direction+state.comments.length)%state.comments.length];if(c)reveal(c);
   }
   function stepChange(direction){
-    if(view!=='changes'){view='changes';run(render);return;}
+    if(!data.git)return;
     const changes=[...doc.querySelectorAll('[data-change=add],[data-change=delete]')];
     const match=direction>0?changes.find(n=>n.getBoundingClientRect().top>60):changes.filter(n=>n.getBoundingClientRect().top<0).at(-1);
     match?.scrollIntoView({block:'center'});
@@ -273,9 +289,11 @@ export function createReviewUI({surface,openDialog,closeDialog,clearMode,say,beg
   const commands=[
     ...[['r','Resume document review',()=>{if(!sidebar)toggleSidebar();}],
       ['c','Toggle review comments',toggleSidebar],['y','Copy review handoff',()=>run(copyHandoff)],
-      ['d','Toggle changes only',()=>run(async()=>{view=view==='changes'?'rendered':'changes';await render();})],
+      ...(data.git?[
+        ['d','Toggle unstaged changes only',()=>run(async()=>{view=view==='changes'?'rendered':'changes';await render();})],
+        ['g','Stage this file',()=>run(stageFile)],
+      ]:[]),
       ['v','Toggle rendered / source',()=>run(async()=>{view=view==='source'?'rendered':'source';await render();})],
-      ['b','Choose comparison baseline',()=>controls.querySelector('select').focus()],
       ['e','Load latest revision',()=>run(latest)],
       ['a','Resolve selected review comment',()=>{const c=state.comments.find(c=>c.id===selectedId);if(c)run(()=>setStatus(c,'resolved'));}],
       ['u','Reopen selected review comment',()=>{const c=state.comments.find(c=>c.id===selectedId);if(c)run(()=>setStatus(c,'open'));}],

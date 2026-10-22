@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Study Keys \u2014 Read, Highlight, Remember",
   "short_name": "Study Keys",
-  "version": "1.7.0",
+  "version": "1.7.1",
   "icons": {
     "16": "icons/16.png",
     "32": "icons/32.png",
@@ -53,7 +53,7 @@
     }
   ],
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'none'; connect-src 'self'; img-src 'self' data: blob:; font-src 'self' data:; frame-src 'self'; base-uri 'none'"
+    "extension_pages": "script-src 'self'; object-src 'none'; connect-src 'self' https: http:; img-src 'self' data: blob:; font-src 'self' data:; frame-src 'self'; base-uri 'none'"
   },
   "web_accessible_resources": [
     {
@@ -63,6 +63,14 @@
       "matches": [
         "http://*/*",
         "https://*/*",
+        "file:///*"
+      ]
+    },
+    {
+      "resources": [
+        "review-media.js"
+      ],
+      "matches": [
         "file:///*"
       ]
     }

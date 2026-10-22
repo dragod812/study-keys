@@ -1,10 +1,11 @@
 # Study Keys release status
 
 - Chrome Web Store published version: 1.6.1 (last verified October 20, 2026)
-- GitHub release: 1.6.2. Chrome Web Store update: **Pending review**, submitted October 20, 2026 with automatic publication after approval.
+- Latest prepared release: 1.7.1. The installed Chrome build and helper are updated and tested. Web Store delivery of this version is not yet confirmed.
+- Previous Web Store submission: 1.7.0, submitted October 20, 2026 with automatic publication after approval.
 - Publisher name: Sidharth Padhee (saved in Web Store publisher settings)
 - Public repository: https://github.com/dragod812/study-keys
-- Beta release: https://github.com/dragod812/study-keys/releases/tag/v1.6.2
+- Releases: https://github.com/dragod812/study-keys/releases
 - Website: https://dragod812.github.io/study-keys/
 - Privacy: https://dragod812.github.io/study-keys/privacy.html
 - Chrome Web Store draft ID: jcjililghkknjbifgcnnkipiblmmmhid
@@ -13,6 +14,14 @@
 - Rechecked October 19, 2026: Google reports **Published - public**, and the Published package is **1.6.1**.
 - Google flagged broad HTTP/HTTPS access for possible in-depth review. This access supports the advertised navigation and highlight restoration on visited web pages.
 - Initial submission date: 2026-10-11 UTC. The 1.6.1 listing is now public; later updates require their own approval.
+
+## Version 1.7.1 verification and publication
+
+The review workflow now uses plain comment handoffs, rendered unstaged changes, explicit single-file staging, and ordinary reading outside Git. 121 JavaScript tests and 37 helper tests pass; the production audit reports zero known vulnerabilities. Installed Chrome and Codex-browser checks are recorded in [verification](review-simplification-verification.md). The helper and local unpacked Chrome extension are updated to 1.7.1. GitHub/website delivery and Web Store submission will be recorded after verification.
+
+## Version 1.7.0 verification and publication
+
+GitHub v1.7.0 and its website were published October 20, 2026. Chrome Web Store accepted the 1.7.0 upload and confirmed submission for review with automatic publication after approval. See [document review verification](document-review-verification.md) for the evidence and original release details.
 
 ## Version 1.6.2 verification and publication
 

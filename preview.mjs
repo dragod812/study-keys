@@ -6,10 +6,12 @@ import {fileURLToPath} from 'node:url';
 import path from 'node:path';
 import {build} from 'esbuild';
 import {createRepository} from './src/repository.js';
+import {remoteImage} from './src/review-background.js';
 const root=path.dirname(fileURLToPath(import.meta.url));
 await mkdir(path.join(root,'.preview'),{recursive:true});
 const plugin={name:'test-only-transport',setup(b){b.onResolve({filter:/^\.\/transport\.js$/},()=>({path:path.join(root,'src/preview-transport.js')}));}};
 for(const name of ['content','library'])await build({entryPoints:[path.join(root,'src/'+name+'.js')],bundle:true,format:name==='content'?'iife':'esm',outfile:path.join(root,'.preview/'+name+'.js'),loader:{'.css':'text'},define:{STUDY_KEYS_PREVIEW:'true'},plugins:[plugin]});
+await build({entryPoints:[path.join(root,'src/review-media.js')],bundle:true,format:'esm',outfile:path.join(root,'.preview/review-media.js'),minify:true});
 process.chdir(root);await buildDrawing(path.join(root,'.preview/drawing'),[plugin]);
 const sessions=new Map();
 const db=path.join(root,'.preview/test-data.json');let data={};try{data=JSON.parse(await readFile(db,'utf8'));}catch{}
@@ -23,9 +25,11 @@ for(const port of [8788,8789,8790]){
    let result;try{
     let m=JSON.parse(body),value;
     if(m.type==='review')value=await new Promise((resolve,reject)=>{
-      const child=spawn('python3',[path.join(root,'native/review_fixture.py')],{cwd:root});let out='',err='';
+      const child=spawn(process.env.STUDY_KEYS_PYTHON||'python3',[path.join(root,'native/review_fixture.py')],{cwd:root});let out='',err='';
       child.stdout.on('data',x=>out+=x);child.stderr.on('data',x=>err+=x);
-      child.on('error',reject);child.on('close',code=>{if(code)reject(Error(err.split('\n').filter(Boolean).at(-1)));else try{resolve(JSON.parse(out));}catch(e){reject(e);}});
+      child.on('error',reject);child.on('close',async code=>{if(code)reject(Error(err.split('\n').filter(Boolean).at(-1)));else try{
+        const result=JSON.parse(out);resolve(result.remote?await remoteImage(result.remote):result);
+      }catch(e){reject(e);}});
       child.stdin.end(JSON.stringify(m));
     });
     else if(m.type==='openNotebook'){const session=crypto.randomUUID();sessions.set(session,{url:m.url,title:m.title});value={session,layout:data['notebook-layout'],src:`http://127.0.0.1:${port}/notebook.html?session=${session}`};}
@@ -37,12 +41,12 @@ for(const port of [8788,8789,8790]){
   }
   const pathname=new URL(req.url,`http://127.0.0.1:${port}`).pathname;
   let file=pathname==='/'?path.join(root,'fixtures',port===8788?'docs.html':port===8789?'blog.html':'app.html'):path.join(root,pathname.slice(1));
-  if(['/content.js','/library.js'].includes(pathname))file=path.join(root,'.preview',pathname.slice(1));
+  if(['/content.js','/library.js','/review-media.js'].includes(pathname))file=path.join(root,'.preview',pathname.slice(1));
   if(pathname.startsWith('/drawing/'))file=path.join(root,'.preview',pathname.slice(1));
   if(!file.startsWith(root+path.sep))throw Error('Invalid path');
   let body=await readFile(file);
   if(path.extname(file)==='.html'&&new URL(req.url,`http://127.0.0.1:${port}`).searchParams.has('installed'))body=Buffer.from(body.toString().replace('<script src="/content.js"></script>','').replace('not the installed extension','installed extension test (no preview script)'));
-  if(path.extname(file)==='.html'&&new URL(req.url,`http://127.0.0.1:${port}`).searchParams.has('isolated'))body=Buffer.from(body.toString().replace('<script src="/content.js"></script>',`<button id="start-preview" onclick="const s=document.createElement('script');s.src='/content.js';document.body.append(s);this.remove()">Start isolated preview (put installed extension in Insert mode first)</button>`));
+  if(path.extname(file)==='.html'&&new URL(req.url,`http://127.0.0.1:${port}`).searchParams.has('isolated'))body=Buffer.from(body.toString().replace(/<script src="\/?content.js"><\/script>/,`<button id="start-preview" onclick="const s=document.createElement('script');s.src='/content.js';document.body.append(s);this.remove()">Start isolated preview (put installed extension in Insert mode first)</button>`));
   res.writeHead(200,{'Content-Type':types[path.extname(file)]||'application/octet-stream','Cache-Control':'no-store'});res.end(body);
  }catch(e){res.writeHead(404);res.end(e.message);}}).listen(port,'127.0.0.1');
 }

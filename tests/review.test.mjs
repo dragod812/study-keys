@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {changedLines,comparison,makePrompt,sourceHash,shellQuote,sourceLocation,reviewEditorCommand} from '../src/review-model.js';
+import {changedLines,makePrompt,sourceHash,sourceLocation,reviewEditorCommand} from '../src/review-model.js';
 import {reviewRequest,readerSource,resolveReaderSender} from '../src/review-background.js';
 import {currentPageSender} from '../src/page-sender.js';
 import {readerTabAPI} from '../src/reader-tabs.js';
@@ -13,35 +13,23 @@ test('review comparisons preserve removals, line positions, whitespace and bound
   assert.ok(changedLines('x\n\n','x\n',true).some(r=>r.change==='delete'));
   assert.ok(changedLines(' '.repeat(8)+'x',' x').some(r=>r.change==='add'));
 });
-test('baselines distinguish handoff, unstaged, staged and HEAD',()=>{
-  const d={document:{source:'work',hash:'work-hash'},previous:'snapshot',previousHash:'snapshot-hash',git:{index:'index',head:'head'}};
-  assert.equal(comparison(d,'handoff').before.source,'snapshot');
-  assert.equal(comparison(d,'unstaged').before.source,'index');
-  assert.equal(comparison(d,'staged').after.source,'index');
-  assert.equal(comparison(d,'head').before.source,'head');
-  assert.throws(()=>comparison({...d,git:{conflicted:true}},'staged'),/conflict/);
-  assert.throws(()=>comparison({...d,previous:null},'handoff'),/missing/);
-});
 test('source mapping never labels ambiguous or formatted text as exact',()=>{
   assert.deepEqual(sourceLocation('a\nsame\nsame\n','same',1,3),{line:1,endLine:3,quality:'block'});
   assert.deepEqual(sourceLocation('# H\n\nThis **key** idea.\n','key idea',3,3),{line:3,endLine:3,quality:'block'});
   assert.deepEqual(sourceLocation('a\nb\nc\n','b',1,3),{line:2,endLine:2,quality:'exact'});
 });
-test('handoff quotes literal paths, preserves comment IDs and refuses silent partial staging',()=>{
+test('handoff is plain feedback: no Git commands, hash checks or staging prerequisites',()=>{
   const data={document:{path:"/tmp/it's $(no).md",hash:'a'.repeat(64)},git:{root:"/tmp/it's",relative:'$(no).md'}};
   const comments=[{id:'r1',hash:'a'.repeat(64),status:'open',text:'Explain the tradeoff.',quote:'Some text',line:4,endLine:7,quality:'block'}];
   const prompt=makePrompt(data,comments,1);
-  assert.ok(prompt.includes("--literal-pathspecs add -- '$(no).md'"));
-  assert.ok(prompt.includes("'/tmp/it'\\''s'"));
+  assert.ok(prompt.includes(JSON.stringify(data.document.path)));
   assert.ok(prompt.includes('r1'));assert.ok(prompt.includes('4–7'));
-  assert.ok(!prompt.includes('git add .'));
-  data.git.partiallyStaged=true;
-  assert.ok(!makePrompt(data,comments,1).includes('--literal-pathspecs add'));
-  data.git.reviewBaseline=true;data.git.indexHash='b'.repeat(64);
-  assert.ok(makePrompt(data,comments,2).includes('--literal-pathspecs add'));
-  assert.ok(makePrompt(data,comments,2).includes('Verify that staged hash first'));
+  for(const git of [undefined,{partiallyStaged:true},{conflicted:true}]){
+    const text=makePrompt({...data,git},comments,2);
+    assert.doesNotMatch(text,/sha-?256|hash|git|staging|verify|stop before/i);
+    assert.ok(text.includes('Explain the tradeoff.'));
+  }
   assert.throws(()=>makePrompt(data,[],1),/open review comment/);
-  assert.equal(shellQuote('a\nb'),"'a\nb'");
 });
 test('review native operations require packaged top-frame reader bound to its exact document',async()=>{
   const url='file:///tmp/review.md',reader='chrome-extension://test/review.html?url='+encodeURIComponent(url);
@@ -51,6 +39,11 @@ test('review native operations require packaged top-frame reader bound to its ex
   assert.equal(readerSource(sender,api),url);
   await reviewRequest(api,native,{action:'reviewLoad',url},sender);
   assert.equal(calls.length,1);
+  await reviewRequest(api,native,{action:'reviewStage',url,path:'/tmp/unrelated.md'},sender);
+  assert.equal(calls.at(-1)[0],'reviewStage');assert.equal(calls.at(-1)[1].url,url);
+  assert.equal(calls.at(-1)[1].path,undefined);
+  await reviewRequest(api,native,{action:'reviewAsset',url,ref:'image.svg',side:'before',offset:100},sender);
+  assert.equal(calls.at(-1)[1].ref,'image.svg');assert.equal(calls.at(-1)[1].offset,100);
   for(const other of [{...sender,url:'https://test/review.html?url='+url},{...sender,frameId:1},{...sender,url:'chrome-extension://test/notebook.html?url='+url}])
     await assert.rejects(reviewRequest(api,native,{action:'reviewGrant',url},other));
   await assert.rejects(reviewRequest(api,native,{action:'reviewGrant',url:'file:///tmp/other.md'},sender));
