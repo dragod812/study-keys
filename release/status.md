@@ -1,7 +1,7 @@
 # Study Keys release status
 
 - Chrome Web Store published version: 1.6.1 (last verified October 20, 2026)
-- Latest prepared release: 1.7.1. The installed Chrome build and helper are updated and tested. Web Store delivery of this version is not yet confirmed.
+- GitHub release: 1.7.1. The website, installed Chrome build and helper are updated and tested. Web Store 1.7.1 submission is blocked by Google account verification; it has not been submitted.
 - Previous Web Store submission: 1.7.0, submitted October 20, 2026 with automatic publication after approval.
 - Publisher name: Sidharth Padhee (saved in Web Store publisher settings)
 - Public repository: https://github.com/dragod812/study-keys
@@ -17,7 +17,7 @@
 
 ## Version 1.7.1 verification and publication
 
-The review workflow now uses plain comment handoffs, rendered unstaged changes, explicit single-file staging, and ordinary reading outside Git. 121 JavaScript tests and 37 helper tests pass; the production audit reports zero known vulnerabilities. Installed Chrome and Codex-browser checks are recorded in [verification](review-simplification-verification.md). The helper and local unpacked Chrome extension are updated to 1.7.1. GitHub/website delivery and Web Store submission will be recorded after verification.
+The review workflow now uses plain comment handoffs, rendered unstaged changes, explicit single-file staging, and ordinary reading outside Git. 121 JavaScript tests and 37 helper tests pass; the production audit reports zero known vulnerabilities. Installed Chrome and Codex-browser checks are recorded in [verification](review-simplification-verification.md). The helper and local unpacked Chrome extension are updated to 1.7.1. GitHub main and the public [v1.7.1 release](https://github.com/dragod812/study-keys/releases/tag/v1.7.1) contain commit `1091fccb6733f56bdfccf8172e5ad0d24c5416f1`, both ZIPs and their checksums. GitHub Pages reports a successful build of this commit, and the live website was checked for the new review workflow and screenshot. Chrome Web Store redirected to Google account verification; 1.7.1 is not uploaded or submitted yet. The previous 1.7.0 submission status has not been reverified.
 
 ## Version 1.7.0 verification and publication
 
