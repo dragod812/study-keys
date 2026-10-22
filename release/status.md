@@ -1,8 +1,8 @@
 # Study Keys release status
 
-- Chrome Web Store published version: 1.6.1 (last verified October 20, 2026)
-- GitHub release: 1.7.1. The website, installed Chrome build and helper are updated and tested. Web Store 1.7.1 submission is blocked by Google account verification; it has not been submitted.
-- Previous Web Store submission: 1.7.0, submitted October 20, 2026 with automatic publication after approval.
+- Chrome Web Store published version: 1.6.1 (last verified October 22, 2026)
+- GitHub release: 1.7.1. The website, installed Chrome build and helper are updated and tested. Chrome Web Store 1.7.1 is pending review, submitted October 22, 2026 with automatic publication after approval.
+- Previous Web Store submission: 1.7.0 was canceled October 22, 2026 to submit the tested 1.7.1 replacement. The published 1.6.1 listing remains available.
 - Publisher name: Sidharth Padhee (saved in Web Store publisher settings)
 - Public repository: https://github.com/dragod812/study-keys
 - Releases: https://github.com/dragod812/study-keys/releases
@@ -17,7 +17,7 @@
 
 ## Version 1.7.1 verification and publication
 
-The review workflow now uses plain comment handoffs, rendered unstaged changes, explicit single-file staging, and ordinary reading outside Git. 121 JavaScript tests and 37 helper tests pass; the production audit reports zero known vulnerabilities. Installed Chrome and Codex-browser checks are recorded in [verification](review-simplification-verification.md). The helper and local unpacked Chrome extension are updated to 1.7.1. GitHub main and the public [v1.7.1 release](https://github.com/dragod812/study-keys/releases/tag/v1.7.1) contain commit `1091fccb6733f56bdfccf8172e5ad0d24c5416f1`, both ZIPs and their checksums. GitHub Pages reports a successful build of this commit, and the live website was checked for the new review workflow and screenshot. Chrome Web Store redirected to Google account verification; 1.7.1 is not uploaded or submitted yet. The previous 1.7.0 submission status has not been reverified.
+The review workflow now uses plain comment handoffs, rendered unstaged changes, explicit single-file staging, and ordinary reading outside Git. 121 JavaScript tests and 37 helper tests pass; the production audit reports zero known vulnerabilities. Installed Chrome and Codex-browser checks are recorded in [verification](review-simplification-verification.md). The helper and local unpacked Chrome extension are updated to 1.7.1. GitHub main and the public [v1.7.1 release](https://github.com/dragod812/study-keys/releases/tag/v1.7.1) contain commit `1091fccb6733f56bdfccf8172e5ad0d24c5416f1`, both ZIPs and their checksums. GitHub Pages reports a successful build of this commit, and the live website was checked for the new review workflow and screenshot. On October 22, 2026 (America/Los_Angeles), the previous pending 1.7.0 review was canceled. Google parsed the replacement package as **1.7.1**; its checksum matches the tested GitHub release asset. The 7,459-character description, updated nativeMessaging explanation and 479-character reviewer checklist were saved. The dashboard confirmed **Your extension was submitted for review** and **Pending review**, with automatic publication after approval selected. The published package still shows **1.6.1**. Submission is complete; Google approval and publication remain pending. Local screenshot evidence is saved under `.preview/study-keys-1.7.1-submitted.png` and excluded from the repository.
 
 ## Version 1.7.0 verification and publication
 
