@@ -8,3 +8,15 @@ Implementation checkpoint: `85bc445` (follow-up adds a current-main check and do
 - Store observed in Chrome: published 1.7.1, submitted 1.7.2 pending review, new-package upload disabled. No cancellation control exposed.
 - Publishing identity not yet linked at this checkpoint: Google Cloud SDK consent awaits user confirmation. Hosted run explicitly warned and skipped authentication/submission. A successful build is not a successful store release.
 - Independent agent review was not available under the session's delegation constraints. State-machine regression tests cover pending/staged review preservation, already-published versions, blocked/rejected items, async upload processing, failed upload preventing submission, and automatic-publication submission payload.
+
+## Google identity setup
+
+Created dedicated project `study-keys-release-1414018037` (number `99823398318`), enabled required APIs, and created `study-keys-publisher@study-keys-release-1414018037.iam.gserviceaccount.com` without project resource roles or service-account keys.
+
+Provider: `projects/99823398318/locations/global/workloadIdentityPools/github/providers/github-main`. Conditions require repository ID `1414018037`, owner ID `21700561`, ref `refs/heads/main`, and exclude pull-request events. Only this repository principal set has `roles/iam.workloadIdentityUser` on the publisher account. All three GitHub configuration variables are installed.
+
+Google's predefined pool admin role did not grant the legacy permission required by the create API. A temporary custom setup role supplied only pool/provider creation/read permissions; both temporary setup bindings were removed afterward. The service account received no project IAM roles.
+
+First authenticated hosted attempt reached token minting but returned IAM 403; retrying after IAM propagation. Publisher service-account linking is separately prepared in Chrome and awaits action-time confirmation.
+
+The rerun's Google authentication step succeeded, proving GitHub → Google federation and service-account token minting. The Web Store status request then returned HTTP 403 while the service account remained unlinked in Publisher Settings. This is the remaining access gate, not a build/test failure. See [authenticated run](https://github.com/dragod812/study-keys/actions/runs/43766283764).
