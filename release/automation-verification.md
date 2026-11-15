@@ -20,3 +20,9 @@ Google's predefined pool admin role did not grant the legacy permission required
 First authenticated hosted attempt reached token minting but returned IAM 403; retrying after IAM propagation. Publisher service-account linking is separately prepared in Chrome and awaits action-time confirmation.
 
 The rerun's Google authentication step succeeded, proving GitHub → Google federation and service-account token minting. The Web Store status request then returned HTTP 403 while the service account remained unlinked in Publisher Settings. This is the remaining access gate, not a build/test failure. See [authenticated run](https://github.com/dragod812/study-keys/actions/runs/43766283764).
+
+## End-to-end access verified
+
+The user approved linking the service account. Chrome showed “Service account added”; after Save changes and a full reload, the publisher settings still listed the exact account.
+
+[Release run 43766856224](https://github.com/dragod812/study-keys/actions/runs/43766856224) passed all 137 JavaScript tests, 40 native tests, production packaging/MV3 audit, Google keyless authentication and the Web Store API request. Its log reported `Chrome Web Store 1.7.4.35: deferred.` Google is still processing the existing 1.7.2 review; no newer package was uploaded or submitted by this run. Automatic publishing is now configured: hourly runs retry the latest main commit without cancelling an active review. Future main pushes receive the same tested release path and monotonically versioned packages.
