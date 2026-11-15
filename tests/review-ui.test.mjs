@@ -7,7 +7,7 @@ import {reviewVersions,reviewChanged,sourceHash} from '../src/review-model.js';
 const settle=async()=>{for(let i=0;i<8;i++)await new Promise(resolve=>setTimeout(resolve,0));};
 test('review lifecycle: selection, drafts, combined prompt, delete/undo, Git views and second round',async t=>{
   const {document,window,Node}=parseHTML('<html><head><title></title></head><body><h1 id="review-title"></h1><div id="review-controls"></div><p id="review-status"></p><main id="review-document"></main></body></html>');
-  const source='# Review\n\nUse four workers.\n\nKeep this paragraph.\n',hash=await sourceHash(source);
+  const source='# Review\n\nUse four workers.\n\nKeep this paragraph.\n\n![Architecture](diagram.png)\n',hash=await sourceHash(source);
   let backend={document:{url:'file:///tmp/Review.md',path:'/tmp/Review.md',source,hash},git:{index:source,indexHash:hash,head:source,headHash:hash},state:{revision:null,comments:[],draft:null,rounds:[]}};
   let clipboard='',box=null,dialogKey,failSave=false,poll;
   const calls=[],cache=new Map();
@@ -21,6 +21,7 @@ test('review lifecycle: selection, drafts, combined prompt, delete/undo, Git vie
         backend.state={...structuredClone(m.state),revision:crypto.randomUUID()};
         return {ok:true,value:{state:structuredClone(backend.state)}};
       }
+      if(m.action==='reviewAsset')return {ok:true,value:{data:'data:image/png;base64,AA==',hash:'same-image'}};
       if(m.action==='reviewProbe')return {ok:true,value:{hash:backend.document.hash,indexHash:backend.git?.indexHash??null,headHash:backend.git?.headHash??null}};
       if(m.action==='reviewStage'){
         backend.git.index=backend.document.source;backend.git.indexHash=backend.document.hash;
@@ -48,6 +49,8 @@ test('review lifecycle: selection, drafts, combined prompt, delete/undo, Git vie
     input.oninput(); // A late input event cannot resurrect the saved draft.
     await settle();assert.equal(backend.state.draft,null);
   }
+  const mediaLoads=calls.filter(c=>c.action==='reviewAsset').length;assert.equal(mediaLoads,2,'index and working images are loaded independently');
+  await click('Source');await click('Read');assert.equal(calls.filter(c=>c.action==='reviewAsset').length,mediaLoads,'view switches reuse loaded image bytes');
   select('Use four workers.');ui.comment();await save('Explain worker sizing.');
   select('Keep this paragraph.');ui.comment();await save('Add an example.');
   await click('Comments (2)');

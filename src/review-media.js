@@ -24,5 +24,5 @@ export function diagramImage(source){
       return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(new XMLSerializer().serializeToString(root));
     }finally{host.remove();}
   });
-  queue=result;cache.set(source,result);if(cache.size>80)cache.delete(cache.keys().next().value);return result;
+  queue=result;cache.set(source,result);result.catch(()=>{if(cache.get(source)===result)cache.delete(source);});if(cache.size>80)cache.delete(cache.keys().next().value);return result;
 }

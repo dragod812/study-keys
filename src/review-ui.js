@@ -4,26 +4,34 @@ import {changedLines,makePrompt,sourceHash,reviewEditorCommand,reviewVersions,re
 import {renderDocument,renderLines,loadReviewMedia,locationForSelection} from './review-render.js';
 import {stampVersion,renderRichDiff} from './review-diff.js';
 import {reviewDrafts} from './review-drafts.js';
+import {reviewAssetCache} from './review-cache.js';
+import {reviewPosition,restoreReviewPosition} from './review-reading.js';
 
 let session=null;
+const assetCache=reviewAssetCache();
 const node=(tag,text,cls)=>{const n=document.createElement(tag);if(text!=null)n.textContent=text;if(cls)n.className=cls;return n;};
 const button=(text,run)=>{const n=node('button',text);n.type='button';n.onclick=run;return n;};
 const call=(action,extra={})=>request({type:'review',action,url:reviewDocument(),...extra});
 const versionsFor=reviewVersions;
 async function renderedReview(target,data,onlyChanges=false,comparison='unstaged'){
-  const versions=versionsFor(data,comparison),html=/\.html?$/i.test(data.document.path),cache=new Map();
+  const versions=versionsFor(data,comparison),html=/\.html?$/i.test(data.document.path);
   const loadAsset=side=>ref=>{
-    const key=side+':'+ref;if(cache.has(key))return cache.get(key);
-    const promise=(async()=>{
+    const key=side+':'+ref;
+    return assetCache.get(key,async()=>{
       let value=await call('reviewAsset',{ref,side});if(value.data||value.missing)return value;
       const chunks=[value.chunk],hash=value.hash,mime=value.mime;
       while(value.next!=null){value=await call('reviewAsset',{ref,side,offset:value.next});chunks.push(value.chunk);}
       return {data:'data:'+mime+';base64,'+chunks.join(''),hash};
-    })();cache.set(key,promise);return promise;
+    });
   };
   const after=node('div');renderDocument(after,versions.after.source,html);stampVersion(after,'after',versions.after);
   await loadReviewMedia(after,loadAsset(versions.afterSide));
   if(!data.git){target.replaceChildren(...after.childNodes);return;}
+  // Media bytes may differ between HEAD/index/working even when Markdown is
+  // unchanged, so bypass the diff only for identical documents without media.
+  if(versions.before.source===versions.after.source&&!after.querySelector('[data-review-media]')){
+    target.replaceChildren(...(onlyChanges?[node('p',`No ${comparison==='all'?'uncommitted':comparison} changes in this document.`)]:[...after.childNodes]));return;
+  }
   const before=node('div');renderDocument(before,versions.before.source,html);stampVersion(before,'before',versions.before);
   await loadReviewMedia(before,loadAsset(versions.beforeSide));
   const changes=renderRichDiff(target,before,after,{onlyChanges});
@@ -41,7 +49,7 @@ export async function prepareReview(){
   while(!session){
     try{
       const data=await call('reviewLoad');
-      if(!data.needsGrant){session=data;break;}
+      if(!data.needsGrant){session=data;assetCache.clear();break;}
       status.textContent=`Allow reading this document and its referenced images:\n${data.path}\nComments are saved in ~/.study-keys. Your source is not edited.`;
       await new Promise(resolve=>{
         controls.replaceChildren(button('Allow this document',async()=>{
@@ -88,6 +96,7 @@ export function createReviewUI({surface,openDialog,closeDialog,clearMode,say,beg
   }catch{}
   async function render(){
     const number=++renderNumber,target=node('div');
+    const position=reviewPosition(doc,window.innerHeight);
     clearMode();
     versions=versionsFor(data,comparison);
     if(view==='source'){
@@ -98,6 +107,7 @@ export function createReviewUI({surface,openDialog,closeDialog,clearMode,say,beg
     }else await renderedReview(target,data,view==='changes'&&!!data.git,comparison);
     if(number!==renderNumber)return;
     doc.replaceChildren(...target.childNodes);
+    if(position&&typeof window.scrollBy==='function'){const delta=restoreReviewPosition(doc,position);if(delta!==null)window.scrollBy(0,delta);}
     renderControls();updateStatus();
   }
   function renderControls(){
@@ -280,7 +290,7 @@ export function createReviewUI({surface,openDialog,closeDialog,clearMode,say,beg
     if(fresh.needsGrant)throw Error('Document access was revoked. Reload to allow this file again.');
     if(fresh.state.draft?.text?.trim())try{drafts.put(fresh.state.draft);}catch{}
     const changed=fresh.document.hash!==data.document.hash;
-    data=fresh;state=fresh.state;session=fresh;saveError=null;
+    data=fresh;state=fresh.state;session=fresh;saveError=null;assetCache.clear();
     if(draft){state.draft=draft;await persist();}
     if(!data.git&&view==='changes')view='rendered';
     await render();renderSidebar();say(changed?'Latest revision loaded. Original comment locations are preserved.':'You have the latest revision.');

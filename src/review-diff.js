@@ -3,9 +3,10 @@ import {diffArrays,diffWordsWithSpace} from 'diff';
 const isText=node=>node.nodeType===3;
 const isMedia=node=>node.nodeType===1&&node.hasAttribute('data-review-media');
 const limits={timeout:800,maxEditLength:10000};
-const key=node=>isText(node)?'#'+node.data:JSON.stringify([node.tagName,
+let keyCache=new WeakMap();
+const key=node=>{if(keyCache.has(node))return keyCache.get(node);const value=isText(node)?'#'+node.data:JSON.stringify([node.tagName,
   ...[...node.attributes].filter(a=>!a.name.startsWith('data-source-')&&!['src','data-media-source'].includes(a.name)).map(a=>[a.name,a.value]),
-  isMedia(node)?node.dataset.mediaSignature||node.dataset.mediaSource:[...node.childNodes].map(key)]);
+  isMedia(node)?node.dataset.mediaSignature||node.dataset.mediaSource:[...node.childNodes].map(key)]);keyCache.set(node,value);return value;};
 
 export function stampVersion(root,side,version){
   for(const n of root.querySelectorAll('[data-source-start]')){
@@ -72,6 +73,7 @@ function mergeChildren(before,after){
 }
 
 export function renderRichDiff(target,before,after,{onlyChanges=false}={}){
+  keyCache=new WeakMap();
   target.replaceChildren(mergeChildren(before,after));
   if(onlyChanges){
     function prune(parent){

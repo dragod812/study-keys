@@ -8,3 +8,5 @@ Study Keys 1.7.2 removes unused remote embed script loaders from the packaged Ex
 Update the local helper to use the new document-review comparisons.
 
 Validation: 127 JavaScript tests, 40 helper tests, audited package build and isolated Chrome drawing/save smoke test with no remote requests or page errors. This is a resubmission candidate; Chrome Web Store approval is separate.
+
+Markdown review responsiveness: reuse bounded image assets while switching views, skip redundant diffs for unchanged text, cache DOM comparison signatures, preserve the visible source passage when changing views, and allow failed diagram renders to retry.
