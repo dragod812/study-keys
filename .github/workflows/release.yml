@@ -48,9 +48,21 @@ jobs:
             echo '::warning::Publishing is not configured. See release/automation.md. Tested ZIP is available in artifacts.'
             echo 'Publishing blocked: Google Cloud / Web Store identity must be linked. See release/automation.md.' >> "$GITHUB_STEP_SUMMARY"
           fi
+      - name: Check main is still current
+        id: current
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          latest=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)
+          if [ "$latest" = "$GITHUB_SHA" ]; then
+            echo 'fresh=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'Newer main commit exists; its workflow will publish.' >> "$GITHUB_STEP_SUMMARY"
+          fi
       - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
         id: auth
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.CWS_WORKLOAD_IDENTITY_PROVIDER != '' && vars.CWS_SERVICE_ACCOUNT != '' && vars.CWS_PUBLISHER_ID != ''
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && steps.current.outputs.fresh == 'true' && vars.CWS_WORKLOAD_IDENTITY_PROVIDER != '' && vars.CWS_SERVICE_ACCOUNT != '' && vars.CWS_PUBLISHER_ID != ''
         with:
           workload_identity_provider: ${{ vars.CWS_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ vars.CWS_SERVICE_ACCOUNT }}

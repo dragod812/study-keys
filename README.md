@@ -215,6 +215,8 @@ If a tab was open during an update, the badge changes to **Study Keys updated ·
 
 ## Development
 
+Main commits automatically run checks and build downloadable Chrome packages. Marketplace submission uses a keyless Google identity and waits for existing reviews. See [release automation](release/automation.md) for setup and deployment status semantics.
+
 Requires Node 20+ and Chrome 131+ (Chrome desktop).
 
 ```sh
