@@ -111,7 +111,12 @@ def git_state(path, working):
     if conflicted:
         index_entry = next((x for x in entries if x[2] == b'2'), None)
     index_text = blob(index_entry[1] if index_entry else None)
-    return {'root': str(root), 'relative': relative, 'index': index_text,
+    head_records = git(root, 'ls-tree', '-z', 'HEAD', '--', relative, optional=True)
+    head_entry = next((x.split(b'\t', 1)[0].split() for x in (head_records or b'').split(b'\0') if x), None)
+    head_text = blob(head_entry[2] if head_entry and head_entry[0] in (b'100644', b'100755') else None)
+    return {'root': str(root), 'relative': relative, 'index': index_text, 'head': head_text,
+            'indexHash': hashlib.sha256(index_text.encode('utf-8')).hexdigest(),
+            'headHash': hashlib.sha256(head_text.encode('utf-8')).hexdigest(),
             'conflicted': conflicted, 'untracked': not entries}
 
 
@@ -168,10 +173,10 @@ def image_references(source):
 def asset(store, path, document, message):
     ref = message.get('ref')
     side = message.get('side', 'after')
-    if not isinstance(ref, str) or len(ref) > 20000 or side not in ('before', 'after'):
+    if not isinstance(ref, str) or len(ref) > 20000 or side not in ('before', 'after', 'index', 'head'):
         raise ValueError('Invalid image reference.')
-    info = git_state(path, document['source']) if side == 'before' else None
-    source = info['index'] if info else document['source']
+    info = git_state(path, document['source']) if side != 'after' else None
+    source = info['head' if side == 'head' else 'index'] if info else document['source']
     # Only images actually referenced by this granted document are readable.
     def canonical(value):
         u = urlsplit(urljoin(path.as_uri(), value))
@@ -197,11 +202,17 @@ def asset(store, path, document, message):
     raw = None
     if info and image.is_relative_to(info['root']):
         relative = image.relative_to(info['root']).as_posix()
-        records = git(info['root'], 'ls-files', '--stage', '-z', '--', relative)
-        entries = [x.split(b'\t', 1)[0].split() for x in records.split(b'\0') if x]
-        entry = next((x for x in entries if x[2] == b'0'), None)
+        if side == 'head':
+            records = git(info['root'], 'ls-tree', '-z', 'HEAD', '--', relative, optional=True) or b''
+            entries = [x.split(b'\t', 1)[0].split() for x in records.split(b'\0') if x]
+            entry = entries[0] if entries else None
+            ident = entry[2].decode() if entry else None
+        else:
+            records = git(info['root'], 'ls-files', '--stage', '-z', '--', relative)
+            entries = [x.split(b'\t', 1)[0].split() for x in records.split(b'\0') if x]
+            entry = next((x for x in entries if x[2] == b'0'), None)
+            ident = entry[1].decode() if entry else None
         if entry and entry[0] in (b'100644', b'100755'):
-            ident = entry[1].decode()
             if int(git(info['root'], 'cat-file', '-s', ident)) > IMAGE_LIMIT:
                 raise ValueError('This image exceeds 8 MiB. Open the original to view it.')
             raw = git(info['root'], 'cat-file', 'blob', ident, limit=IMAGE_LIMIT)
@@ -244,7 +255,12 @@ def handle(store, message):
         git(info['root'], 'add', '--', info['relative'])
         return {'staged': True}
     if op == 'reviewProbe':
-        return {'hash': document['hash']}
+        try:
+            info = git_state(path, document['source'])
+        except (OSError, ValueError, subprocess.TimeoutExpired):
+            info = None
+        return {'hash': document['hash'], 'indexHash': info['indexHash'] if info else None,
+                'headHash': info['headHash'] if info else None}
     if document:
         snapshot = store.path('.snapshots', document['hash'] + '.txt')
         if not snapshot.exists():
@@ -294,7 +310,7 @@ def handle(store, message):
     except (OSError, ValueError, subprocess.TimeoutExpired):
         git_info = None  # Repository metadata never prevents reading or commenting.
     if git_info:
-        for key in ('index',):
+        for key in ('index', 'head'):
             raw = git_info[key].encode('utf-8')
             ident = hashlib.sha256(raw).hexdigest()
             git_info[key + 'Hash'] = ident

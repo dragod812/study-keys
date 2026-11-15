@@ -1,6 +1,6 @@
 import {request} from './transport.js';
 import {reviewDocument} from './document-context.js';
-import {changedLines,makePrompt,sourceHash,reviewEditorCommand} from './review-model.js';
+import {changedLines,makePrompt,sourceHash,reviewEditorCommand,reviewVersions,reviewChanged} from './review-model.js';
 import {renderDocument,renderLines,loadReviewMedia,locationForSelection} from './review-render.js';
 import {stampVersion,renderRichDiff} from './review-diff.js';
 import {reviewDrafts} from './review-drafts.js';
@@ -9,9 +9,9 @@ let session=null;
 const node=(tag,text,cls)=>{const n=document.createElement(tag);if(text!=null)n.textContent=text;if(cls)n.className=cls;return n;};
 const button=(text,run)=>{const n=node('button',text);n.type='button';n.onclick=run;return n;};
 const call=(action,extra={})=>request({type:'review',action,url:reviewDocument(),...extra});
-const versionsFor=data=>({before:{source:data.git?.index??data.document.source,hash:data.git?.indexHash??data.document.hash},after:data.document});
-async function renderedReview(target,data,onlyChanges=false){
-  const versions=versionsFor(data),html=/\.html?$/i.test(data.document.path),cache=new Map();
+const versionsFor=reviewVersions;
+async function renderedReview(target,data,onlyChanges=false,comparison='unstaged'){
+  const versions=versionsFor(data,comparison),html=/\.html?$/i.test(data.document.path),cache=new Map();
   const loadAsset=side=>ref=>{
     const key=side+':'+ref;if(cache.has(key))return cache.get(key);
     const promise=(async()=>{
@@ -22,12 +22,12 @@ async function renderedReview(target,data,onlyChanges=false){
     })();cache.set(key,promise);return promise;
   };
   const after=node('div');renderDocument(after,versions.after.source,html);stampVersion(after,'after',versions.after);
-  await loadReviewMedia(after,loadAsset('after'));
+  await loadReviewMedia(after,loadAsset(versions.afterSide));
   if(!data.git){target.replaceChildren(...after.childNodes);return;}
   const before=node('div');renderDocument(before,versions.before.source,html);stampVersion(before,'before',versions.before);
-  await loadReviewMedia(before,loadAsset('before'));
+  await loadReviewMedia(before,loadAsset(versions.beforeSide));
   const changes=renderRichDiff(target,before,after,{onlyChanges});
-  if(onlyChanges&&!changes)target.append(node('p','No unstaged changes in this document.'));
+  if(onlyChanges&&!changes)target.append(node('p',`No ${comparison==='all'?'uncommitted':comparison} changes in this document.`));
 }
 
 export async function prepareReview(){
@@ -58,14 +58,14 @@ export async function prepareReview(){
 
 export function createReviewUI({surface,openDialog,closeDialog,clearMode,say,beginBlocks,getSelectionState,setDialogKey}){
   if(!session)return null;
-  let data=session,state=data.state,sidebar=null,view='rendered',versions=versionsFor(data),
-      queue=Promise.resolve(),draftTimer,selectedId=null,polling=false,selectionComment=false,saveError=null,staging=false,renderNumber=0;
+  let data=session,state=data.state,sidebar=null,view='rendered',comparison='unstaged',versions=versionsFor(data),deleted=null,
+      queue=Promise.resolve(),actions=Promise.resolve(),draftTimer,selectedId=null,polling=false,selectionComment=false,saveError=null,staging=false,renderNumber=0;
   const doc=document.querySelector('#review-document'),controls=document.querySelector('#review-controls'),
     status=document.querySelector('#review-status'),drafts=reviewDrafts(localStorage,data.document.url);
-  const run=fn=>Promise.resolve().then(fn).catch(e=>{say(e.message);status.textContent=e.message;});
+  const run=fn=>{actions=actions.then(fn).catch(e=>{say(e.message);status.textContent=e.message;});return actions;};
   const openComments=()=>state.comments.filter(c=>c.status==='open');
   function updateStatus(extra=''){
-    status.textContent=`${state.comments.length} comments · ${openComments().length} open · Saved locally${data.git?' · Unstaged: green additions / red deletions':''}${extra?' · '+extra:''}`;
+    status.textContent=`${state.comments.length} comments · ${openComments().length} open · Saved locally${data.git?' · '+({unstaged:'Unstaged',staged:'Staged',all:'All uncommitted'}[comparison])+': green additions / red deletions':''}${data.git&&typeof data.git.head!=='string'?' · Update the local helper to enable staged comparisons':''}${extra?' · '+extra:''}`;
   }
   function persist(){
     queue=queue.catch(()=>{}).then(async()=>{
@@ -89,13 +89,13 @@ export function createReviewUI({surface,openDialog,closeDialog,clearMode,say,beg
   async function render(){
     const number=++renderNumber,target=node('div');
     clearMode();
-    versions=versionsFor(data);
+    versions=versionsFor(data,comparison);
     if(view==='source'){
       const rows=data.git?changedLines(versions.before.source,versions.after.source):
         data.document.source.split(/\r?\n/).map((text,i)=>({text,newLine:i+1,change:'same'}));
       renderLines(target,rows,
         versions.before,versions.after);
-    }else await renderedReview(target,data,view==='changes'&&!!data.git);
+    }else await renderedReview(target,data,view==='changes'&&!!data.git,comparison);
     if(number!==renderNumber)return;
     doc.replaceChildren(...target.childNodes);
     renderControls();updateStatus();
@@ -104,6 +104,13 @@ export function createReviewUI({surface,openDialog,closeDialog,clearMode,say,beg
     controls.replaceChildren();
     for(const [id,text] of [['rendered','Read'],['source','Source'],...(data.git?[['changes','Changes only']]:[])]){
       const b=button(text,()=>run(async()=>{view=id;await render();}));b.setAttribute('aria-pressed',String(view===id));controls.append(b);
+    }
+    if(data.git){
+      const select=node('select');select.setAttribute('aria-label','Compare changes');
+      for(const [value,label] of [['unstaged','Unstaged · index → working'],...(typeof data.git.head==='string'?[['staged','Staged · HEAD → index'],['all','All uncommitted · HEAD → working']]:[])]){
+        const option=node('option',label);option.value=value;select.append(option);
+      }
+      select.value=comparison;select.onchange=()=>run(async()=>{comparison=select.value;await render();});controls.append(select);
     }
     if(data.git){const stage=button(staging?'Staging…':'Stage file · Space r g',()=>run(stageFile));stage.disabled=staging;
       stage.title='git add — only this document, including all its current changes';controls.append(stage);}
@@ -119,8 +126,9 @@ export function createReviewUI({surface,openDialog,closeDialog,clearMode,say,beg
     sidebar.replaceChildren();
     const header=node('div',null,'row');
     header.append(node('h2','Review comments','grow'),button('Close',toggleSidebar));sidebar.append(header);
-    sidebar.append(node('p','y copies the agent handoff · j / k choose · Enter opens · a resolves · u reopens · Esc closes','muted'));
+    sidebar.append(node('p','y copies the agent handoff · j / k choose · Enter opens · a resolves · u reopens · x deletes · Esc closes','muted'));
     sidebar.append(button('Copy handoff · y',()=>run(copyHandoff)));
+    if(deleted)sidebar.append(button('Undo delete',()=>run(undoDelete)));
     if(state.rounds.length)sidebar.append(button('View last handoff',()=>showHandoff(state.rounds.at(-1))));
     if(state.draft)sidebar.append(button('Resume comment draft',()=>comment(null,true)));
     for(const d of drafts.list().filter(d=>d.id!==state.draft?.id)){
@@ -132,7 +140,7 @@ export function createReviewUI({surface,openDialog,closeDialog,clearMode,say,beg
       const jump=button(`${c.status==='resolved'?'✓ ':'○ '}${c.line?`Lines ${c.line}–${c.endLine}`:'Whole document'}`,()=>reveal(c));
       card.append(jump);
       if(c.quote)card.append(node('blockquote',c.quote));
-      card.append(node('p',c.text),button('Edit',()=>edit(c)),button(c.status==='open'?'Resolve':'Reopen',()=>run(()=>setStatus(c,c.status==='open'?'resolved':'open'))));
+      card.append(node('p',c.text),button('Edit',()=>edit(c)),button(c.status==='open'?'Resolve':'Reopen',()=>run(()=>setStatus(c,c.status==='open'?'resolved':'open'))),button('Delete',()=>run(()=>deleteComment(c))));
       sidebar.append(card);
     }
   }
@@ -143,7 +151,7 @@ export function createReviewUI({surface,openDialog,closeDialog,clearMode,say,beg
       if(e.ctrlKey||e.metaKey||e.altKey||e.isComposing)return;
       const direct=sidebar.getRootNode().activeElement===sidebar;
       if(e.key==='Enter'&&!direct)return;
-      if(['Escape','y','j','k','Enter','a','u'].includes(e.key)){
+      if(['Escape','y','j','k','Enter','a','u','x'].includes(e.key)){
         e.preventDefault();e.stopImmediatePropagation();
         if(e.key==='Escape')return toggleSidebar();
         if(e.key==='y')return run(copyHandoff);
@@ -151,6 +159,7 @@ export function createReviewUI({surface,openDialog,closeDialog,clearMode,say,beg
         if(e.key==='j'||e.key==='k'){selectedId=state.comments[Math.max(0,Math.min(state.comments.length-1,at+(e.key==='j'?1:-1)))]?.id;renderSidebar();sidebar.querySelector('[data-selected=true]')?.scrollIntoView({block:'nearest'});}
         const c=state.comments.find(c=>c.id===selectedId)||state.comments[0];
         if(c&&e.key==='Enter')reveal(c);
+        if(c&&e.key==='x')run(()=>deleteComment(c));
         if(c&&['a','u'].includes(e.key))run(()=>setStatus(c,e.key==='a'?'resolved':'open'));
       }
     };
@@ -161,7 +170,7 @@ export function createReviewUI({surface,openDialog,closeDialog,clearMode,say,beg
     const all=[...doc.querySelectorAll('[data-source-start]')];
     doc.querySelectorAll('[data-current-comment]').forEach(n=>delete n.dataset.currentComment);
     // Never pretend old coordinates are current coordinates.
-    const candidates=c.hash===data.document.hash?all.filter(n=>+n.dataset.sourceStart<=c.line&&+n.dataset.sourceEnd>=c.line):
+    const candidates=all.some(n=>n.dataset.sourceHash===c.hash)?all.filter(n=>n.dataset.sourceHash===c.hash&&+n.dataset.sourceStart<=c.line&&+n.dataset.sourceEnd>=c.line):
       all.filter(n=>c.quote&&n.textContent.includes(c.quote));
     const target=candidates.sort((a,b)=>a.textContent.length-b.textContent.length)[0];
     if(target){target.dataset.currentComment='';target.scrollIntoView({block:'center'});}
@@ -189,7 +198,7 @@ export function createReviewUI({surface,openDialog,closeDialog,clearMode,say,beg
     const save=async()=>{
       if(saving)return;
       if(!input.value.trim())return say('Write a comment before saving.');
-      saving=true;
+      saving=true;input.readOnly=true;
       clearTimeout(draftTimer);
       const item={...draft,text:input.value.trim(),updatedAt:Date.now()};
       const old=state.comments.find(c=>c.id===item.id);
@@ -202,13 +211,14 @@ export function createReviewUI({surface,openDialog,closeDialog,clearMode,say,beg
         closeDialog(true);selectedId=item.id;renderControls();renderSidebar();say('Review comment saved');
       }
       catch(e){state.comments=state.comments.filter(c=>c.id!==item.id);if(old)state.comments.push(old);state.draft=item;message.textContent=e.message;}
-      finally{saving=false;}
+      finally{saving=false;input.readOnly=false;}
     };
-    input.oninput=()=>keepDraft({...draft,text:input.value});
+    input.oninput=()=>{if(!saving)keepDraft({...draft,text:input.value});};
     setDialogKey(e=>{
       const command=reviewEditorCommand(e);
+      if(saving&&command){e.preventDefault();return;}
       if(command==='save'){e.preventDefault();run(save);}
-      if(command==='leave'){e.preventDefault();keepDraft({...draft,text:input.value});closeDialog(true);say('Draft kept · Space r c to resume');}
+      if(command==='leave'){e.preventDefault();keepDraft({...draft,text:input.value});closeDialog(true);renderSidebar();say('Draft kept · Space r c to resume');}
     });
     box.append(input,message,button('Save comment',()=>run(save)),button('Discard draft',()=>{
       keepDraft(null);closeDialog(true);renderSidebar();
@@ -218,10 +228,24 @@ export function createReviewUI({surface,openDialog,closeDialog,clearMode,say,beg
     const before=c.status;c.status=value;
     try{await persist();renderSidebar();renderControls();}catch(e){c.status=before;throw e;}
   }
+  async function deleteComment(c){
+    if(state.draft?.id===c.id)throw Error('Finish or discard this comment draft before deleting it.');
+    const index=state.comments.indexOf(c);if(index<0)return;
+    state.comments.splice(index,1);
+    try{await persist();deleted={comment:c,index};selectedId=state.comments[Math.min(index,state.comments.length-1)]?.id??null;
+      renderSidebar();renderControls();say('Comment deleted · Undo delete is available in Comments');}
+    catch(e){state.comments.splice(index,0,c);throw e;}
+  }
+  async function undoDelete(){
+    if(!deleted)return;const item=deleted;
+    state.comments.splice(Math.min(item.index,state.comments.length),0,item.comment);
+    try{await persist();deleted=null;selectedId=item.comment.id;renderSidebar();renderControls();say('Comment restored');}
+    catch(e){state.comments=state.comments.filter(c=>c.id!==item.comment.id);throw e;}
+  }
   async function copyHandoff(){
     clearTimeout(draftTimer);await persist();
     if(state.draft?.text?.trim())throw Error('Save or discard your comment draft before copying the handoff.');
-    const signature=await sourceHash(JSON.stringify({format:2,comments:state.comments}));
+    const signature=await sourceHash(JSON.stringify({format:3,path:data.document.path,hash:data.document.hash,comments:openComments()}));
     let round=state.rounds.at(-1);
     if(round?.signature!==signature){
       round={id:crypto.randomUUID(),number:state.rounds.length+1,hash:data.document.hash,signature,
@@ -266,7 +290,7 @@ export function createReviewUI({surface,openDialog,closeDialog,clearMode,say,beg
     staging=true;renderControls();
     try{
       const result=await call('reviewStage');
-      if(result.staged){await latest();say('Staged this file. Other files were not staged.');}
+      if(result.staged){comparison='unstaged';await latest();say('Staged this file. Other files were not staged.');}
     }finally{staging=false;renderControls();}
   }
   function stepComment(direction){
@@ -283,7 +307,7 @@ export function createReviewUI({surface,openDialog,closeDialog,clearMode,say,beg
   if(state.draft?.text)say('An unfinished review comment is saved. Space r c resumes it.');
   setInterval(async()=>{
     if(document.hidden||polling)return;polling=true;
-    try{const probe=await call('reviewProbe');if(probe.hash!==data.document.hash)updateStatus('New revision available · Load latest when ready');}catch(e){status.textContent=e.message;}finally{polling=false;}
+    try{const probe=await call('reviewProbe');if(reviewChanged(data,probe))updateStatus('Source or Git comparison changed · Load latest when ready');}catch(e){status.textContent=e.message;}finally{polling=false;}
   },10000);
   window.addEventListener('pagehide',()=>{if(state.draft)try{drafts.put(state.draft);}catch{}});
   const commands=[

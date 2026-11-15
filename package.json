@@ -15,7 +15,12 @@
     "package": "node build.mjs --zip",
     "test:native": "python3 -m unittest discover -s native -p \"test_*.py\"",
     "install:local": "python3 native/install.py",
-    "install:skill": "python3 native/install_skill.py"
+    "install:skill": "python3 native/install_skill.py",
+    "review:install": "npm --prefix ../herdr-markdown-review run review:install --",
+    "review:open": "npm --prefix ../herdr-markdown-review run review:open --",
+    "test:herdr-review": "npm --prefix ../herdr-markdown-review test",
+    "test:herdr-native": "npm --prefix ../herdr-markdown-review run test:native",
+    "review:default": "npm --prefix ../herdr-markdown-review run review:default --"
   },
   "dependencies": {
     "@excalidraw/excalidraw": "0.18.1",

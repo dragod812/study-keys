@@ -58,3 +58,17 @@ export function makePrompt(data,comments,number){
     'Report each comment ID and the change made. Explain anything you could not address. Leave comment resolution to me; I will review your changes in Study Keys.');
   return lines.join('\n');
 }
+
+// A review round defaults to the index baseline so staging accepts that round.
+export function reviewVersions(data,comparison='unstaged'){
+  if(!data.git)return {before:data.document,after:data.document,beforeSide:'after',afterSide:'after'};
+  const revision=key=>({source:data.git[key]??'',hash:data.git[key+'Hash']});
+  return {before:revision(comparison==='unstaged'?'index':'head'),
+    after:comparison==='staged'?revision('index'):data.document,
+    beforeSide:comparison==='unstaged'?'before':'head',afterSide:comparison==='staged'?'before':'after'};
+}
+export function reviewChanged(data,probe){
+  return probe.hash!==data.document.hash||
+    ('indexHash' in probe&&probe.indexHash!==(data.git?.indexHash??null))||
+    ('headHash' in probe&&probe.headHash!==(data.git?.headHash??null));
+}

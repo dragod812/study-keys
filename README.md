@@ -296,19 +296,19 @@ Use `gI` when you can see several text boxes and want to choose one directly. Us
 
 `Space p p` controls one HTML video/audio element in the current page; cross-origin embedded players and other tabs are outside this shortcut’s scope. Normal-mode shortcut keydown, keypress and keyup events remain isolated from website player shortcuts. Shift and Caps Lock no longer cancel a command prefix before an uppercase key.
 
-## Review local documents (1.7.1)
+## Review local documents
 
 Open a local Markdown or HTML file, then press **Space r r** (or choose **Review local document** in the extension popup). Plain Markdown opened in Chrome is rendered by Study Keys automatically. The review reader uses the same file identity for highlights, notes and the existing drawing notebook.
 
-Update the local helper for this release. The reader asks permission for the exact document before reading its UTF-8 source, referenced images and Git index version. Source access can be revoked in the reader. The source is never edited; staging happens only when you choose **Stage file** or **Space r g**, and affects that document alone.
+Update the local helper for this release. The reader asks permission for the exact document before reading its UTF-8 source, referenced images and Git index / HEAD versions. Source access can be revoked in the reader. The source is never edited; staging happens only when you choose **Stage file** or **Space r g**, and affects that document alone.
 
 1. Read the document. Press **v**, choose word endpoints, then **c** to comment. **v Space t** selects sentence endpoints; **v Space p** selects paragraph endpoints; **v Space s** selects a heading section. In the reader, **c** starts paragraph selection and **C** adds a whole-file comment.
 2. Write feedback and press **Ctrl+Enter** or **Cmd+Enter** to save. **Ctrl+C** or Escape leaves a recoverable draft. Open **Space r c** to resume it.
 3. Open the review sidebar with **Space r c**, then press **y** to copy the handoff. **Space r y** works anywhere in Normal mode. Visual **y** still copies selected text; **yy** still copies the file URL.
    **View last handoff** reopens the saved prompt for copying or downloading, including when browser clipboard access is unavailable.
 4. The prompt contains the document path, source lines, quoted passages, sections and your comments. It has no Git commands, SHA checks or staging instructions. You can copy feedback after the source changes; line numbers are references, not requirements. Each handoff is saved as an immutable round.
-5. After the agent edits, use **Space r e** to load the latest revision. Inside a Git repository, reading shows unstaged changes against the index: additions have green underlines and removals have slightly transparent red strikethrough. Images, SVG and Mermaid diagrams remain rendered with red/green frames for previous/current versions. **Space r d** filters to changed content. **Stage file** stages all current changes to this document, including any previously unstaged portions; other files remain untouched. Outside Git, no diff, staging controls or Git setup appears.
-6. Select with **v**, then **1–6** to save your usual color highlights. Resolve or reopen comments yourself. Old comments retain their original revision, source lines, selected quote and heading. Comments on deleted lines remain attached to the earlier revision.
+5. After the agent edits, use **Space r e** to load the latest revision. Inside a Git repository, the **Compare changes** selector offers **Unstaged** (index → working file, the default), **Staged** (HEAD → index), and **All uncommitted** (HEAD → working file). Reading shows changes against the selected baseline: additions have green underlines and removals have slightly transparent red strikethrough. Images, SVG and Mermaid diagrams remain rendered with red/green frames for previous/current versions. **Space r d** filters to changed content. **Stage file** stages all current changes to this document, including any previously unstaged portions; other files remain untouched. After an external `git add`, choose **Load latest** / **Space r e** to refresh the comparison; the default Unstaged view becomes clean. The reader detects both source and Git baseline changes and offers a refresh without interrupting a selection or draft. Outside Git, no diff, staging controls or Git setup appears.
+6. Select with **v**, then **1–6** to save your usual color highlights. Resolve or reopen comments yourself, or use **Delete** in the comment sidebar (**x** when navigating comments). **Undo delete** restores the last deleted comment during this reader session. Deleting a comment removes it from future prompts; past handoffs remain unchanged. Add fresh comments for the next round and copy a new combined handoff. Old comments retain their original revision, source lines, selected quote and heading. Comments on deleted lines remain attached to the earlier revision.
 
 | Keys | Review action |
 | --- | --- |
@@ -323,6 +323,12 @@ Update the local helper for this release. The reader asks permission for the exa
 | ]r / [r | Next / previous review comment |
 | Space r a / Space r u | Resolve / reopen selected comment |
 
+See [review-cycle verification](release/review-cycle-verification.md) for the tested two-round workflow and delivery status.
+
 Reviews are stored beside each local document’s annotations in `~/.study-keys/pages/local-files/<document>/review/review.json`. This contains comments, drafts and immutable handoff prompts. Raw source snapshots live in `~/.study-keys/.snapshots/`, excluded from Git by the updated installer. **Back up the folder, including .snapshots, to preserve review history.** Existing annotation JSON exports do not yet include review records or snapshots.
 
 The reader supports UTF-8 regular files up to 2 MiB. Symlink paths are rejected; open the real file path. Markdown has tables, code blocks, lists and inline formatting. HTML review is a static reading view: scripts, page styles and embedded applications do not execute. Referenced local images (up to 8 MiB each), inline SVG and Mermaid diagrams are rendered. Remote images are fetched without cookies or referrer when their server allows it; unavailable media retains its caption/source. Use **Original ↗** for the original HTML presentation. Some rendered selections map to a source block rather than exact lines; the comment labels that distinction. A review handoff currently covers one document. No automatic AI execution, project-wide review batch or Markdown math is claimed. Staging the document does not stage separate image files.
+
+### Herdr Markdown review
+
+The native Herdr reviewer renders Markdown and Mermaid beside an agent session, with modal keyboard navigation, comments, highlights, agent questions and one-command feedback copying. Run `npm run review:install`, then `mdreview path/to/document.md`. The reviewer is maintained in [herdr-markdown-review](https://github.com/dragod812/herdr-markdown-review). Clone it beside this repository and follow its guide for setup, shortcuts and verification. The npm review commands here forward to that checkout.

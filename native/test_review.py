@@ -79,10 +79,62 @@ class ReviewTests(unittest.TestCase):
         self.file.write_text('# Queue\n\nUnstaged wording.\n')
         index = (self.project / '.git/index').read_bytes()
         data = self.call('reviewGrant')
-        self.assertNotIn('head', data['git'])
+        self.assertIn('Wait for quota', data['git']['head'])
         self.assertIn('Staged wording', data['git']['index'])
         self.assertEqual((self.project / '.git/index').read_bytes(), index)
         self.assertIn('Unstaged wording', data['document']['source'])
+
+    def test_two_review_rounds_external_staging_and_git_probe(self):
+        self.initialize_git()
+        initial = self.call('reviewGrant')
+        probe = self.call('reviewProbe')
+        self.assertEqual(probe['indexHash'], initial['git']['indexHash'])
+        self.assertEqual(probe['headHash'], initial['git']['headHash'])
+        self.file.write_text('# Queue\n\nFirst agent revision.\n')
+        edited = self.call('reviewLoad')
+        self.assertNotEqual(edited['document']['hash'], edited['git']['indexHash'])
+        self.git('add', '--', self.file.name)
+        staged_probe = self.call('reviewProbe')
+        self.assertEqual(staged_probe['hash'], edited['document']['hash'])
+        self.assertNotEqual(staged_probe['indexHash'], probe['indexHash'])
+        staged = self.call('reviewLoad')
+        self.assertEqual(staged['git']['indexHash'], staged['document']['hash'])
+        self.assertNotEqual(staged['git']['headHash'], staged['git']['indexHash'])
+        self.file.write_text('# Queue\n\nSecond agent revision.\n')
+        second = self.call('reviewLoad')
+        self.assertIn('First agent revision', second['git']['index'])
+        self.assertIn('Second agent revision', second['document']['source'])
+        self.assertEqual(second['git']['head'], initial['git']['head'])
+
+    def test_staged_images_use_index_and_head_without_worktree_leaks(self):
+        image = self.project / 'diagram.svg'
+        image.write_text('<svg><text>Committed</text></svg>')
+        self.file.write_text('![diagram](diagram.svg)\n')
+        self.initialize_git()
+        self.git('add', '--', image.name)
+        self.git('commit', '-qm', 'Image baseline')
+        image.write_text('<svg><text>Staged</text></svg>')
+        self.git('add', '--', image.name)
+        image.write_text('<svg><text>Working</text></svg>')
+        self.call('reviewGrant')
+        for side, expected in [('head', b'Committed'), ('index', b'Staged'), ('after', b'Working')]:
+            self.assertIn(expected, base64.b64decode(self.call('reviewAsset', ref=image.name, side=side)['chunk']))
+
+    def test_delete_comments_preserves_saved_prompt_and_rejects_stale_tab(self):
+        data = self.call('reviewGrant')
+        state = data['state']
+        state['comments'] = [{'id': 'c1', 'text': 'Clarify.', 'hash': data['document']['hash'], 'status': 'open'}]
+        state['rounds'] = [{'hash': data['document']['hash'], 'prompt': 'Original feedback'}]
+        saved = self.call('reviewSave', state=state, expected=None)['state']
+        deleted = copy.deepcopy(saved)
+        deleted['comments'] = []
+        result = self.call('reviewSave', state=deleted, expected=saved['revision'])['state']
+        self.assertEqual(self.call('reviewLoad')['state']['comments'], [])
+        self.assertEqual(result['rounds'], saved['rounds'])
+        with self.assertRaisesRegex(ValueError, 'another tab'):
+            self.call('reviewSave', state=saved, expected=saved['revision'])
+        restored = {**result, 'comments': saved['comments']}
+        self.assertEqual(len(self.call('reviewSave', state=restored, expected=result['revision'])['state']['comments']), 1)
 
     def test_untracked_document_in_git_has_empty_baselines(self):
         self.initialize_git()
