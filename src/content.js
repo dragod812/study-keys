@@ -524,6 +524,7 @@ function start() {
     {keys:['O'],label:'Open a URL in a new tab',run:()=>openAddress(true)},
     {keys:['H'],label:'Back in tab history',run:()=>attempt(()=>request({type:'navigate',action:'back'}))},
     {keys:['L'],label:'Forward in tab history',run:()=>attempt(()=>request({type:'navigate',action:'forward'}))},
+    {keys:['W'],label:'Move this tab to a separate window',run:()=>attempt(()=>request({type:'navigate',action:'detach'}))},
     {keys:['J'],label:'Next browser tab',run:()=>attempt(()=>request({type:'navigate',action:'next'}))},
     {keys:['K'],label:'Previous browser tab',run:()=>attempt(()=>request({type:'navigate',action:'previous'}))},
     {keys:['g','0'],label:'First browser tab',run:()=>attempt(()=>request({type:'navigate',action:'first'}))},

@@ -92,6 +92,7 @@ Marks preserve horizontal and vertical scroll, including independent reading pan
 | `Space p l` | Resume the last search |
 | `H` / `L` | Back / forward in tab history |
 | `J` / `K` | Next / previous browser tab |
+| `W` (Shift+w or Caps Lock W) | Move this tab into its own focused window |
 | `g0` / `g$` | First / last browser tab in the window |
 | `gi` / `2gi` / `3gi` | Focus the first / second / third editable field, including fields below the fold |
 | `gI` (`g`, then Shift+i) | Label visible text fields; type a label to focus that field |

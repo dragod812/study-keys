@@ -7,6 +7,7 @@ import {createSidePanelController} from './side-panel.js';
 import {currentPageSender} from './page-sender.js';
 import {readerSource,reviewRequest,resolveReaderSender} from './review-background.js';
 import {readerTabAPI} from './reader-tabs.js';
+import {detachTab} from './tab-window.js';
 const readingAPI=readerTabAPI(chrome);
 const sidePanel=createSidePanelController(chrome);
 let agentService,reconnectTimer,reconnectDelay=2000;
@@ -99,6 +100,7 @@ chrome.runtime.onMessage.addListener((m,sender,respond)=>{
     if(m.type==='openLibrary'){await chrome.runtime.openOptionsPage();return {opened:true};}
     if(m.type==='navigate'){
       if(!sender.tab)throw Error('Use this command from a webpage.');
+      if(m.action==='detach')return detachTab(chrome,sender);
       if(m.action==='back')await chrome.tabs.goBack(sender.tab.id);
       else if(m.action==='forward')await chrome.tabs.goForward(sender.tab.id);
       else if(m.action==='open'){
