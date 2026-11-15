@@ -1,0 +1,68 @@
+name: Test and release
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '23 * * * *'
+permissions:
+  contents: read
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.13'
+      - run: npm ci --ignore-scripts
+      - run: npm test
+      - run: npm run test:native
+      - run: node scripts/ci-version.mjs
+      - run: npm run package
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: chrome-${{ github.sha }}
+          path: |
+            study-keys-chrome.zip
+            dist/study-keys-local-helper.zip
+          if-no-files-found: error
+      - name: Publishing configuration
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        env:
+          READY: ${{ vars.CWS_WORKLOAD_IDENTITY_PROVIDER != '' && vars.CWS_SERVICE_ACCOUNT != '' && vars.CWS_PUBLISHER_ID != '' }}
+        run: |
+          if [ "$READY" != "true" ]; then
+            echo '::warning::Publishing is not configured. See release/automation.md. Tested ZIP is available in artifacts.'
+            echo 'Publishing blocked: Google Cloud / Web Store identity must be linked. See release/automation.md.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        id: auth
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.CWS_WORKLOAD_IDENTITY_PROVIDER != '' && vars.CWS_SERVICE_ACCOUNT != '' && vars.CWS_PUBLISHER_ID != ''
+        with:
+          workload_identity_provider: ${{ vars.CWS_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.CWS_SERVICE_ACCOUNT }}
+          token_format: access_token
+          access_token_scopes: https://www.googleapis.com/auth/chromewebstore
+          create_credentials_file: false
+      - name: Submit to Chrome Web Store
+        if: steps.auth.outcome == 'success'
+        env:
+          CWS_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+          CWS_PUBLISHER_ID: ${{ vars.CWS_PUBLISHER_ID }}
+        run: node scripts/store-release.mjs
+    permissions:
+      contents: read
+      id-token: write
