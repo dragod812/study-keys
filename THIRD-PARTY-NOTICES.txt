@@ -9948,3 +9948,9 @@ NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
 LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+Study Keys build modification (Excalidraw 0.18.1): removes the Twitter/X,
+Reddit and GitHub Gist generated-document script-loader branches for Chrome
+Manifest V3. The original dependency is unchanged in node_modules; the guarded
+build transformation is in drawing-policy.mjs. Existing local-font fallback
+replacement remains in drawing-build.mjs. Original Excalidraw license applies.

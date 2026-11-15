@@ -1,4 +1,5 @@
 import {buildDrawing} from './drawing-build.mjs';
+import {auditPackage} from './mv3-audit.mjs';
 import {mkdir,copyFile,readFile,readdir,writeFile,cp,rm} from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -32,6 +33,7 @@ await writeFile('dist/study-keys-local-helper.zip',zipSync(helperFiles));
 await copyFile('README.md','dist/README.md');
 await cp('third-party','dist/third-party',{recursive:true});
 await copyFile('THIRD-PARTY-NOTICES.txt','dist/THIRD-PARTY-NOTICES.txt');
+await auditPackage('dist');
 if(process.argv.includes('--zip')){
   const files={};
   async function collect(dir,prefix=''){for(const file of await readdir(dir,{withFileTypes:true})){if(file.isDirectory())await collect(path.join(dir,file.name),prefix+file.name+'/');else files[prefix+file.name]=new Uint8Array(await readFile(path.join(dir,file.name)));}}
